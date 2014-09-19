@@ -1,0 +1,14 @@
+﻿<?xml version="1.0"?>
+<doc>
+	<assembly>
+		<name>UnityEditor.UI</name>
+	</assembly>
+	<members>
+		<member name="T:UnityEditor.UI.EditorTools/ContextMenu">
+			<summary>The ContextMenu attribute allows you to add commands to the context menu.</summary>
+		</member>
+		<member name="T:UnityEditor.UI.TextEditor">
+			<summary></summary>
+		</member>
+	</members>
+</doc>
