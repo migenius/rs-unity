@@ -2,6 +2,9 @@ using System.Collections;
 
 namespace com.migenius.rs4.core
 {
+    /**
+     * An internal class for pairing a command with a response callback.
+     */
     public class RSOutgoingCommand
     {
         public RSService Service { get; protected set; }
@@ -17,6 +20,10 @@ namespace com.migenius.rs4.core
             CommandId = commandId;
         }
 
+        /**
+         * If an error occured then we want to wrap up the error in a format
+         * that's appropriate for the response callback.
+         */
         public void DoClientErrorCallback(string message, int code)
         {
             if (Callback == null)

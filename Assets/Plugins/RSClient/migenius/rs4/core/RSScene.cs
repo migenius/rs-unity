@@ -6,14 +6,40 @@ using com.migenius.rs4.math;
 
 namespace com.migenius.rs4.core
 {
+    /**
+     * This has handles importing a specific scene on RealityServer and then loading some
+     * information about the scene, such as the bounding box.
+     *
+     * Events at each stage of the importing process are triggered.
+     */
     public class RSScene
     {
+        /**
+         * Triggered once the scene has imported but before the rest of the data
+         * has been loaded. Will contain an error if an error occured during import.
+         */
+        public event SceneImportedCallback OnSceneImported;
+        /**
+         * Triggered after the scene has loaded and the first set
+         * of commands for loading further importing about the scene
+         * are being sent.
+         */
         public event ApplicationInitialisingCallback OnAppIniting;
+        /**
+         * Triggered after the initial set of commands have completed.
+         * At this point all data should be loaded.
+         */
         public event ApplicationInitialisedCallback OnAppInited;
         
+        /**
+         * Triggered everytime there is a status update. These updates
+         * are designed to be something that can be displayed to the user.
+         */
         public event StatusUpdateCallback OnStatus;
-        public event SceneImportedCallback OnSceneImported;
 
+        /**
+         * Triggered when the scene needs to shutdown.
+         */
         public event ShutdownCallback OnShutdown;
 
         public string Filename = @"scenes\meyemII\main.mi";
@@ -39,8 +65,11 @@ namespace com.migenius.rs4.core
         public string CameraInstanceName = null;
         public string OptionsName = null;
         public string RootGroupName = null;
-        public Vector3D BBoxMax = new Vector3D();
-        public Vector3D BBoxMin = new Vector3D();
+        
+        // These define the bounding box of the scene. 
+        // These will be null if the data has not yet loaded.
+        public Vector3D BBoxMax { get; protected set; }
+        public Vector3D BBoxMin { get; protected set; }
         
         public RSService Service { get; protected set; }
         private string _host = "localhost";
@@ -112,18 +141,24 @@ namespace com.migenius.rs4.core
             }
         }
 
+        /**
+         * Sets up any values that are still null.
+         */
         public void InitValues()
         {
+            // Create a service if one wasn't given.
             if (Service == null)
             {
                 Service = new RSService(Host, Port);
             }
             
+            // Default the scene name to be the same as the filename.
             if (Name == null)
             {
                 Name = Filename;
             }
             
+            // Create a user scope if one wasn't given.
             string rand = RSUtils.RandomString();
             if (UserScope == null || UserScope.Length == 0)
             {
@@ -131,6 +166,10 @@ namespace com.migenius.rs4.core
             }
         }
         
+        /**
+         * Creates the application and user scopes and imports the scene into the user scope.
+         * Also gets the bounding box.
+         */
         public void ImportScene()
         {
             InitValues();
@@ -161,9 +200,22 @@ namespace com.migenius.rs4.core
                     ), (RSResponse resp) => {
                         OnApplicationInit(); 
                     });
+                    
+                    // All commands after this point will be done in the user scope.
+                    RSStateData defaultState = new RSStateData();
+                    defaultState.StateCommands.Add(new RSCommand("use_scope",
+                                "scope_name", UserScope
+                                ));
+
+                    Service.DefaultStateData = defaultState;
             });
         }
         
+        /**
+         * The scene has loaded so we now have the basic scene data, such as the name of the camera and options.
+         *
+         * This will go through and localise those elements into the user scope.
+         */
         protected void OnApplicationInit()
         {
             if (CameraName == null)
@@ -178,6 +230,7 @@ namespace com.migenius.rs4.core
                 seq.AddCommand(new RSCommand("localize_element", "element_name", CameraInstanceName ));
                 seq.AddCommand(new RSCommand("localize_element", "element_name", OptionsName ));
 
+                // Let anyone listening to add more commands at this point.
                 if (OnAppIniting != null)
                 {
                     OnAppIniting(seq);
@@ -197,6 +250,9 @@ namespace com.migenius.rs4.core
             }
         }
 
+        /**
+         * This handles the import_scene response
+         */
         protected void OnSceneImport(RSResponse resp)
         {
             if (resp.IsErrorResponse)
@@ -210,12 +266,6 @@ namespace com.migenius.rs4.core
             }
             else
             {
-                RSStateData defaultState = new RSStateData();
-                defaultState.StateCommands.Add(new RSCommand("use_scope",
-                        "scope_name", UserScope
-                ));
-
-                Service.DefaultStateData = defaultState;
                 Hashtable sceneData = resp.Result as Hashtable;
                 if (sceneData == null)
                 {
@@ -239,6 +289,9 @@ namespace com.migenius.rs4.core
             }
         }
         
+        /**
+         * Handle the bounding box response.
+         */
         protected void OnSceneGetBoundingBox(RSResponse resp)
         {
             if (resp.IsErrorResponse)
@@ -255,13 +308,16 @@ namespace com.migenius.rs4.core
                 Status("error", "Error importing scene");
                 return;
             }
-            BBoxMax.X = Convert.ToDouble(bbox["max_x"]); 
-            BBoxMax.Y = Convert.ToDouble(bbox["max_y"]); 
-            BBoxMax.Z = Convert.ToDouble(bbox["max_z"]); 
-
-            BBoxMin.X = Convert.ToDouble(bbox["min_x"]); 
-            BBoxMin.Y = Convert.ToDouble(bbox["min_y"]); 
-            BBoxMin.Z = Convert.ToDouble(bbox["min_z"]); 
+            
+            BBoxMax = new Vector3D(
+                Convert.ToDouble(bbox["max_x"]),
+                Convert.ToDouble(bbox["max_y"]),
+                Convert.ToDouble(bbox["max_z"]));
+        
+            BBoxMin = new Vector3D(
+                Convert.ToDouble(bbox["min_x"]),
+                Convert.ToDouble(bbox["min_y"]),
+                Convert.ToDouble(bbox["min_z"]));
         }
 
         public void Shutdown()

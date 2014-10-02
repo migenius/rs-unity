@@ -6,6 +6,12 @@ using com.migenius.rs4.math;
 
 namespace com.migenius.rs4.core
 {
+    /**
+     * This class represents a camera in RealityServer.
+     *
+     * This can be used to change the camera's transform, resolution, field of view and if it's orthographic.
+     * Only values that have changed will be sent to RealityServer.
+     */
     public class RSCamera
     {
         protected Dictionary<string, bool> changedValues = new Dictionary<string, bool>();
@@ -171,6 +177,10 @@ namespace com.migenius.rs4.core
             CameraInstanceName = instName;
         }
 
+        /**
+         * If any changes have been made to the camera since the last time this function was called,
+         * then commands for updating those values on the server will be added to the given command sequence.
+         */
         public void UpdateCamera(IAddCommand seq)
         {
             if (CameraName == null || CameraName.Length == 0 ||
@@ -216,6 +226,10 @@ namespace com.migenius.rs4.core
                         "orthographic", Orthographic
                 ));
             }
+            
+            // As the aperture is used by both orthographic and perspective cameras
+            // got slightly different things, we need to update the aperture if 
+            // the orthographic value has changed.
             if ((HasChanged("ortho") && Orthographic) || HasChanged("orthoSize"))
             {
                 seq.AddCommand(new RSCommand("camera_set_aperture",

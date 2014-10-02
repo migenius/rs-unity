@@ -7,9 +7,18 @@ using com.migenius.util;
 
 namespace com.migenius.rs4.core
 {
+    /**
+     * The RSCommand class that wraps the information needed to execute a command.
+     */
     public class RSCommand : IRSCommand
     {
+        /**
+         * The name of the RealityServer command.
+         */
         protected string method;
+        /**
+         * Command parameters specified as an associative array.
+         */
 		protected Hashtable parameters;
 		
         public RSCommand()
@@ -60,13 +69,12 @@ namespace com.migenius.rs4.core
 			}
         }
 
+        /**
+         * Sets a specific parameter to a given key value.
+         */
         public void AddParameter(string key, object value)
         {
 			parameters[key] = value;
-        }
-        public void SetParameters(Hashtable parameters)
-        {
-            this.parameters = parameters;
         }
 
         public string ToJSON(int id)

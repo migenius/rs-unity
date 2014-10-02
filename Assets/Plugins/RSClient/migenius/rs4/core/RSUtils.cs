@@ -7,6 +7,9 @@ namespace com.migenius.rs4.core
 {
     public class RSUtils
     {
+        /**
+         * Returns a random 8 character long string.
+         */
         public static string RandomString()
         {
             int size = 8;
