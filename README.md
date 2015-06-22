@@ -13,7 +13,7 @@ RealityServer Client Library for the Unity Game Engine
 
 ## Notes
 
-If your RealityServer installatio resides on a different machine to your where you are running Unity or serving pages with Unity content you may need to enable CORS hanlding in ```realityserver.conf```. You can find the relevant commented out section in the default file.
+If your RealityServer installation resides on a different machine to your where you are running Unity or serving pages with Unity content you may need to enable CORS hanlding in ```realityserver.conf```. You can find the relevant commented out section in the default file.
 
 Additionally. the Unity player expects a ```crossdomain.xml``` file to be at the root of the site to which requests are made by the player. The following default will allow access from all machines (you can of course be more specific):
 
