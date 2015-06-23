@@ -301,7 +301,7 @@ namespace com.migenius.rs4.viewport
         {
             if (UseRenderLoop)
             {
-                seq.AddCommand(new RSCommand("render_loop_mark_dirty",
+				seq.AddCommand(new RSCommand("render_loop_cancel_render",
                         "render_loop_name", RenderLoopName
                 ));
             }
