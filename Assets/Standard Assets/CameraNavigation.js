@@ -3,6 +3,7 @@ enum TouchNavigation {None, Drag1Finger, Drag2Fingers, Pinching, Rotating};
 enum NavigationMode {None, Orbit, Pan, Look, Dolly};
 enum DoubleTabMethod {None, Focus, Frame};
 
+public var supressNavigation = false;
 public var axes = UseAxes.MouseXAndY;
 public var defaultMouseNavigation = NavigationMode.Orbit;
 
@@ -457,7 +458,10 @@ function Update()
 		
 function LateUpdate ()
 {
-	var dx:float = 0;
+    if (supressNavigation == true) {
+        return;
+    }
+    var dx:float = 0;
 	var dy:float = 0;
 	
 	var tCount:int = Input.touchCount;

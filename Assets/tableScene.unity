@@ -73,6 +73,7 @@ NavMeshSettings:
     minRegionArea: 2
     widthInaccuracy: 16.666666
     heightInaccuracy: 10
+    tileSizeHint: 0
   m_NavMesh: {fileID: 0}
 --- !u!1 &142459860
 GameObject:
@@ -236,7 +237,7 @@ GameObject:
   - 92: {fileID: 341380021}
   - 124: {fileID: 341380020}
   - 81: {fileID: 341380019}
-  - 114: {fileID: 341380025}
+  - 114: {fileID: 341380024}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -309,7 +310,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
---- !u!114 &341380025
+--- !u!114 &341380024
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
@@ -320,6 +321,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ef0e6d1aae4d1d4f90e67e6e3d4657f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  supressNavigation: 0
   axes: 0
   defaultMouseNavigation: 1
   drag1FingerNavigation: 1
@@ -339,7 +341,7 @@ MonoBehaviour:
   invertY: 0
   orbitSpeed: 3
   lookSpeed: 3
-  panSpeed: 1
+  panSpeed: 3
   constantPanSpeed: 0
   dollySpeed: .100000001
   reverseDollyDirection: 0
@@ -403,7 +405,7 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 643007254}
-  m_LocalRotation: {x: -4.21669775e-08, y: .965925813, z: -.258819044, w: -1.573693e-07}
+  m_LocalRotation: {x: -4.2166981e-08, y: .965925872, z: -.258819073, w: -1.57369314e-07}
   m_LocalPosition: {x: 0, y: 312.4711, z: 304.556763}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
@@ -420,6 +422,7 @@ GameObject:
   - 33: {fileID: 1064584030}
   - 136: {fileID: 1064584029}
   - 23: {fileID: 1064584028}
+  - 114: {fileID: 1064584031}
   m_Layer: 0
   m_Name: VaseRight
   m_TagString: Untagged
@@ -479,6 +482,18 @@ MeshFilter:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1064584026}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1064584031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1064584026}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bb06e46a59c7487192afd23ea454526, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  RealityServerObject: vase_right
 --- !u!1 &1453120496
 GameObject:
   m_ObjectHideFlags: 0
@@ -599,6 +614,7 @@ GameObject:
   - 33: {fileID: 1522354757}
   - 136: {fileID: 1522354756}
   - 23: {fileID: 1522354755}
+  - 114: {fileID: 1522354758}
   m_Layer: 0
   m_Name: Goblet
   m_TagString: Untagged
@@ -658,6 +674,18 @@ MeshFilter:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1522354753}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1522354758
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1522354753}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bb06e46a59c7487192afd23ea454526, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  RealityServerObject: vase_middle
 --- !u!1 &1690462559
 GameObject:
   m_ObjectHideFlags: 0
@@ -669,6 +697,7 @@ GameObject:
   - 33: {fileID: 1690462563}
   - 136: {fileID: 1690462562}
   - 23: {fileID: 1690462561}
+  - 114: {fileID: 1690462564}
   m_Layer: 0
   m_Name: VaseLeft
   m_TagString: Untagged
@@ -728,6 +757,18 @@ MeshFilter:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1690462559}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1690462564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1690462559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bb06e46a59c7487192afd23ea454526, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  RealityServerObject: vase_left
 --- !u!1 &2064367841
 GameObject:
   m_ObjectHideFlags: 0
