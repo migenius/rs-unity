@@ -62,7 +62,8 @@ namespace com.migenius.unity {
 			//Debug.Log ("- move in RS " + RealityServerObject + " " + NewPosition) ;
 
 			Matrix3D m = new Matrix3D ();
-			m.SetTranslation(-NewPosition.x,-NewPosition.y,-NewPosition.z);
+			// NB: X is not negated to deal with handedness difference between RS and Unity
+			m.SetTranslation(NewPosition.x,-NewPosition.y,-NewPosition.z);
 
 			seq.AddCommand(new RSCommand("instance_set_world_to_obj",
 			                             "instance_name", RealityServerObject,
