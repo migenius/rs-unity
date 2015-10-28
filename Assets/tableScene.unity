@@ -827,6 +827,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Host: localhost
   Port: 8080
+  Timeout: 100
   SceneFilename: scenes\solids.mi
   Renderer: iray
   RenderLoopHandler: default

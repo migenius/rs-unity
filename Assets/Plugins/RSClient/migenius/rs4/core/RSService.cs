@@ -175,6 +175,7 @@ namespace com.migenius.rs4.core
             public RSStateData DefaultStateData { get; set; }
             public string Host { get; protected set; }
             public int Port { get; protected set; }
+            public int Timeout { get; protected set; }
             public int CommandId { get; protected set; }
             /**
              * Returns the base URL to the service. The base URL is the 
@@ -211,14 +212,16 @@ namespace com.migenius.rs4.core
             {
                 Host = "127.0.0.1";
                 Port = 8080;
+                Timeout = 100;
 
                 Init();
             }
 
-            public RSService(string host, int port)
+            public RSService(string host, int port, int timeout = 100)
             {
                 Host = host;
                 Port =  port;
+                Timeout = timeout;
 
                 Init();
             }
@@ -588,7 +591,7 @@ namespace com.migenius.rs4.core
                     if (seq.ContainsRenderCommands)
                     {
                         // Do render!
-                        using (WebClient webClient = new WebClient())
+                        using (RSWebClient webClient = new RSWebClient(Timeout))
                         {
                             webClient.DownloadDataCompleted += new DownloadDataCompletedEventHandler(RenderCompleted);
                             webClient.Headers.Add("Content-Type", "application/json");
@@ -599,7 +602,7 @@ namespace com.migenius.rs4.core
                     }
                     else
                     {
-                        using (WebClient webClient = new WebClient())
+                        using (RSWebClient webClient = new RSWebClient(Timeout))
                         {
                             webClient.UploadStringCompleted += new UploadStringCompletedEventHandler(NonRenderCompleted);
                             webClient.Headers.Add("Content-Type", "application/json");

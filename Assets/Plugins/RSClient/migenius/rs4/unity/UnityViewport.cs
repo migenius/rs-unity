@@ -33,6 +33,7 @@ namespace com.migenius.rs4.unity
 
         public string Host = "localhost";
         public int Port = 8080;
+        [Tooltip("Timeout for web requests in seconds")] public int Timeout = 100;
         public string SceneFilename = @"scenes\meyemII\main.mi";
         public string Renderer = "default";
         // Currently only render loop is supported.
@@ -42,7 +43,6 @@ namespace com.migenius.rs4.unity
         public UnityTextureRenderTarget RenderTarget = null;
         public Camera RenderCamera = null;
         public bool SceneYUp = true;
-        private bool OldSceneYUp = false;
 
         public List<string> ExcludeLogMessageCategories = new List<string> {"debug"};
 
@@ -56,7 +56,7 @@ namespace com.migenius.rs4.unity
         // Use this for initialization
         void Start ()
         {
-            Scene = new RSScene(Host, Port);
+            Scene = new RSScene(Host, Port, Timeout);
             Scene.Filename = SceneFilename;
             Scene.OnAppIniting += new ApplicationInitialisingCallback(OnAppInitingCallback);
             
@@ -70,8 +70,6 @@ namespace com.migenius.rs4.unity
             Viewport.OnRender += new ResponseHandler(OnRender);
 
             Logger.OnLog += new Logger.LogHandler(onLog);
-
-            OldSceneYUp = !SceneYUp;
         }
         public void Connect()
         {
@@ -179,8 +177,6 @@ namespace com.migenius.rs4.unity
                 RenderTarget.guiTexture.color = colour;
             }
 
-
-            OldSceneYUp = SceneYUp;
         }
         
         protected void OnRestartRender()

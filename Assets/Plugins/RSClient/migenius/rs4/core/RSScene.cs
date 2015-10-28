@@ -74,6 +74,7 @@ namespace com.migenius.rs4.core
         public RSService Service { get; protected set; }
         private string _host = "localhost";
         private int _port = 8080;
+        private int _timeout = 100;
         public bool IsShutdown { get; protected set; }
 
         public string Host 
@@ -114,6 +115,25 @@ namespace com.migenius.rs4.core
                 // else error?
             }
         }
+        public int Timeout 
+        {
+            get
+            {
+                if (Service != null)
+                {
+                    return Service.Timeout;
+                }
+                return _timeout;
+            }
+            set
+            {
+                if (Service == null)
+                {
+                    _timeout = value;
+                }
+                // else error?
+            }
+        }
 
         public string UserScope { get; set; }
         public string ApplicationScope = "unity_app";
@@ -127,10 +147,11 @@ namespace com.migenius.rs4.core
             Service = service;
             Ready = false;
         }
-        public RSScene(string host, int port)
+        public RSScene(string host, int port, int timeout = 100)
         {
             Host = host;
             Port = port;
+            Timeout = timeout;
         }
         
         public void Status(string type, string message)
@@ -149,7 +170,7 @@ namespace com.migenius.rs4.core
             // Create a service if one wasn't given.
             if (Service == null)
             {
-                Service = new RSService(Host, Port);
+                Service = new RSService(Host, Port, Timeout);
             }
             
             // Default the scene name to be the same as the filename.

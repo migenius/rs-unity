@@ -13,7 +13,6 @@ namespace com.migenius.rs4.unity
         private bool Enabled = false;
         public bool AutoCalculateGroundHeight = true;
         public float GroundHeight = 0.0f;
-        private bool OldEnableGroundShadow = false;
         private bool OldAutoCalculateGroundHeight = false;
         private float OldGroundHeight = -1.0f;
         private bool OldSceneYUp = false;
