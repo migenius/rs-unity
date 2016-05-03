@@ -229,7 +229,7 @@ private function dolly(dummy: float, dz: float) { dolly(dz); }
 private function dolly(dz: float)
 {
 	var dirSpeed:float = reverseDollyDirection ? -1 : 1;
-	if(camera.orthographic)
+	if(GetComponent.<Camera>().orthographic)
 	{    
 		var mz:float = dz * dirSpeed;
 		var speed:float = 1 + dollySpeed + (mz - 1) / 10;
@@ -237,7 +237,7 @@ private function dolly(dz: float)
 		{
 			speed = 1 - dollySpeed + (mz + 1) / 10; 
 		}
-		camera.orthographicSize *= speed;
+		GetComponent.<Camera>().orthographicSize *= speed;
 	}
 	else
 	{
@@ -311,7 +311,7 @@ private function frameCamera()
 		sceneBoundingBox = renderers[0].bounds;
 		for(var i:int = 1; i < renderers.length; i++)
 		{
-			if (renderers[i].isVisible && renderers[i].castShadows) 
+			if (renderers[i].isVisible && renderers[i].shadowCastingMode != Rendering.ShadowCastingMode.Off) 
 			{
 				sceneBoundingBox.Encapsulate(renderers[i].bounds);
 			}
@@ -330,8 +330,8 @@ private function frameCamera(fit:float, bounds:Bounds)
 	targetPoint = bb.center;
 	
 	var verticalAperture = 1;
-	var horizontalAperture = verticalAperture * camera.aspect;
-	var focal:float = verticalAperture / Mathf.Tan((camera.fieldOfView/2) * Mathf.Deg2Rad);
+	var horizontalAperture = verticalAperture * GetComponent.<Camera>().aspect;
+	var focal:float = verticalAperture / Mathf.Tan((GetComponent.<Camera>().fieldOfView/2) * Mathf.Deg2Rad);
 	
 	var points:Vector3[] = getBoundsAllPoints(bb);
 	
@@ -347,11 +347,11 @@ private function frameCamera(fit:float, bounds:Bounds)
 		var projY:float = 0;
 		
 		var v:Vector3 = points[i];
-		var v2:Vector3 = camera.worldToCameraMatrix.MultiplyPoint(v);
-		var v3:Vector3 = camera.WorldToViewportPoint(v);
+		var v2:Vector3 = GetComponent.<Camera>().worldToCameraMatrix.MultiplyPoint(v);
+		var v3:Vector3 = GetComponent.<Camera>().WorldToViewportPoint(v);
 		
 		points[i] = v2;
-		if(camera.orthographic)
+		if(GetComponent.<Camera>().orthographic)
 		{
 			projX = Mathf.Abs(v2.x);
 			projY = Mathf.Abs(v2.y);
@@ -376,15 +376,15 @@ private function frameCamera(fit:float, bounds:Bounds)
 	
 	//Debug.Log("max X: " + maxProjectedX + ", Y:" + maxProjectedY + ", Idx:" + maxIdxX + ", Idy:" + maxIdxY);
 	
-	if(camera.orthographic)
+	if(GetComponent.<Camera>().orthographic)
 	{
-		if (maxProjectedX / camera.aspect > maxProjectedY)
+		if (maxProjectedX / GetComponent.<Camera>().aspect > maxProjectedY)
 		{
-			camera.orthographicSize = maxProjectedX / camera.aspect;
+			GetComponent.<Camera>().orthographicSize = maxProjectedX / GetComponent.<Camera>().aspect;
 		}
 		else
 		{
-			camera.orthographicSize = maxProjectedY;
+			GetComponent.<Camera>().orthographicSize = maxProjectedY;
 		}
 	}
 	else
@@ -409,7 +409,7 @@ private function focus() { focus(Input.mousePosition); }
 private function focus(position:Vector2)
 {
 	var hit:RaycastHit;
-	if(Physics.Raycast(camera.ScreenPointToRay(position), hit)) 
+	if(Physics.Raycast(GetComponent.<Camera>().ScreenPointToRay(position), hit)) 
 	{
 		targetPoint = hit.point;
 		transform.LookAt(targetPoint);
@@ -770,8 +770,8 @@ function Start ()
 	initialInputs = new Vector2[16];
 	touchTimes = new float[16];
 	// Make the rigid body not change rotation
-	if (rigidbody)
-		rigidbody.freezeRotation = true;
+	if (GetComponent.<Rigidbody>())
+		GetComponent.<Rigidbody>().freezeRotation = true;
 	
 	targetPoint = new Vector3();
 	transform.LookAt(targetPoint);

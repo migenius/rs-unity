@@ -28,7 +28,7 @@ namespace com.migenius.rs4.unity
         }
         public void OnError(string error)
         {
-            Logger.Log("error", "Error loading render target: " + error);
+            com.migenius.rs4.core.Logger.Log("error", "Error loading render target: " + error);
         }
 
         public void UpdateResolution(int width, int height)
@@ -58,19 +58,19 @@ namespace com.migenius.rs4.unity
         {
             lock (DataLock)
             {
-                if (guiTexture != null)
+                if (GetComponent<GUITexture>() != null)
                 {
                     Texture2D t2d = null;
 
-                    if (guiTexture.texture == null || (newResolution && newWidth > 0 && newHeight > 0))
+                    if (GetComponent<GUITexture>().texture == null || (newResolution && newWidth > 0 && newHeight > 0))
                     {
                         newResolution = false;
                         t2d = new Texture2D(newWidth, newHeight);
-                        guiTexture.texture = t2d;
+                        GetComponent<GUITexture>().texture = t2d;
                     }
                     else
                     {
-                        t2d = guiTexture.texture as Texture2D;
+                        t2d = GetComponent<GUITexture>().texture as Texture2D;
                     }
 
                     if (t2d != null)

@@ -13,11 +13,17 @@ RealityServer Client Library for the Unity Game Engine
 
 ## Notes
 
-Requires RealityServer 4.3 1346.112 to provide the server side scene.
+- Requires RealityServer 4.3 build 1346.112 or later to provide the server side scene.
 
-If your RealityServer installation resides on a different machine to your where you are running Unity or serving pages with Unity content you may need to enable CORS hanlding in ```realityserver.conf```. You can find the relevant commented out section in the default file.
+- Requires Unity 5.3.4f1 or later. This was recently updated. If you require support for Unity 4.x please clone an earlier version of the repository. Support for older versions will not be maintained.
 
-Additionally. the Unity player expects a ```crossdomain.xml``` file to be at the root of the site to which requests are made by the player. The following default will allow access from all machines (you can of course be more specific):
+- If there is no scene open when you open the project, go to _File → Open_ Scene and select _tableScene.unity_ to get the default scene with RealityServer setup.
+
+- For some reason the Unity Editor does not allow mouse navigavtion when viewed over Chrome Remote Desktop. The wheel will work but not mouse navigation. Other remote desktop tools may be affected in a similar way.
+
+- If your RealityServer installation resides on a different machine to your where you are running Unity or serving pages with Unity content you may need to enable CORS hanlding in ```realityserver.conf```. You can find the relevant commented out section in the default file.
+
+- Additionally. the Unity player expects a ```crossdomain.xml``` file to be at the root of the site to which requests are made by the player. The following default will allow access from all machines (you can of course be more specific), This file should be placed in your content_root folder on your RealityServer:
 
 ```xml
 <?xml version="1.0"?>
@@ -25,7 +31,3 @@ Additionally. the Unity player expects a ```crossdomain.xml``` file to be at the
 <allow-access-from domain="*"/>
 </cross-domain-policy>
 ```
-
-This file should be placed in your content_root folder on your RealityServer.
-
-More detailed descriptions to come later!

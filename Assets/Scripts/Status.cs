@@ -31,10 +31,10 @@ public class Status : MonoBehaviour {
             return;
         }
         // Number of pixels from the top of the screen that the gui texture current is located at.
-        if (guiTexture != null)
+        if (GetComponent<GUITexture>() != null)
         {
-            paddingX = guiTexture.transform.position.x * Screen.height;
-            paddingY = (1.0f - guiTexture.transform.position.y) * Screen.height - guiTexture.pixelInset.height;
+            paddingX = GetComponent<GUITexture>().transform.position.x * Screen.height;
+            paddingY = (1.0f - GetComponent<GUITexture>().transform.position.y) * Screen.height - GetComponent<GUITexture>().pixelInset.height;
         }
 
 	}
@@ -62,19 +62,19 @@ public class Status : MonoBehaviour {
     void OnGUI()
     {
         GUI.Label(new Rect(paddingX, paddingY, 200, 20), Text, Style);
-        if (OldText != Text && guiTexture != null)
+        if (OldText != Text && GetComponent<GUITexture>() != null)
         {
             OldText = Text;
             GUIContent content = new GUIContent(Text);
             Vector2 size = Style.CalcSize(content);
             float width = size.x + Style.padding.left;
             float height = size.y + Style.padding.top + 2.0f;
-            guiTexture.pixelInset = new Rect(0, 0, width, height);
+            GetComponent<GUITexture>().pixelInset = new Rect(0, 0, width, height);
 
             float top = 1.0f - ((paddingY + height) / Screen.height);
-            Vector3 pos = guiTexture.transform.position;
+            Vector3 pos = GetComponent<GUITexture>().transform.position;
             pos.y = top;
-            guiTexture.transform.position = pos;
+            GetComponent<GUITexture>().transform.position = pos;
         }
     }
 
@@ -105,11 +105,11 @@ public class Status : MonoBehaviour {
         textColour.a = CalcAlpha(!Hide, textColour.a, 1.0f, 0.25f);
         Style.normal.textColor = textColour;
         
-        if (guiTexture != null)
+        if (GetComponent<GUITexture>() != null)
         {
-            Color textureColour = guiTexture.color;
+            Color textureColour = GetComponent<GUITexture>().color;
             textureColour.a = CalcAlpha(!Hide, textColour.a, 0.5f, 0.25f);
-            guiTexture.color = textureColour;
+            GetComponent<GUITexture>().color = textureColour;
         }
 	}
 }

@@ -47,13 +47,13 @@ function FixedUpdate () {
 		newDistanceApart = Mathf.Abs(((Input.GetTouch(0).position.x-Input.GetTouch(1).position.x)+(Input.GetTouch(0).position.y-Input.GetTouch(1).position.y))/2);
 		
 		if(newDistanceApart > initialDistanceApart) {
-			camera.orthographicSize -= (Time.deltaTime * (newDistanceApart - initialDistanceApart)) * 5;
+			GetComponent.<Camera>().orthographicSize -= (Time.deltaTime * (newDistanceApart - initialDistanceApart)) * 5;
 			initialDistanceApart = newDistanceApart;
 		} else {
-			camera.orthographicSize += (Time.deltaTime * (initialDistanceApart - newDistanceApart)) * 5;
+			GetComponent.<Camera>().orthographicSize += (Time.deltaTime * (initialDistanceApart - newDistanceApart)) * 5;
 			initialDistanceApart = newDistanceApart;
 		}		
-		camera.orthographicSize = Mathf.Clamp(camera.orthographicSize, 5, 80);
+		GetComponent.<Camera>().orthographicSize = Mathf.Clamp(GetComponent.<Camera>().orthographicSize, 5, 80);
 		
 	} else if(Input.touchCount >= 3 && Input.GetTouch(2).phase == TouchPhase.Moved) {
 		var vert : float = Input.GetTouch(2).deltaPosition.x;
@@ -62,12 +62,12 @@ function FixedUpdate () {
 	}
 	
 	if(Input.GetMouseButton(0)) {
-		controller.Move(Vector3(-Input.GetAxis("Mouse Y") * Time.fixedDeltaTime * speed * camera.orthographicSize, 0.0, Input.GetAxis("Mouse X") * Time.fixedDeltaTime * speed  * camera.orthographicSize));
+		controller.Move(Vector3(-Input.GetAxis("Mouse Y") * Time.fixedDeltaTime * speed * GetComponent.<Camera>().orthographicSize, 0.0, Input.GetAxis("Mouse X") * Time.fixedDeltaTime * speed  * GetComponent.<Camera>().orthographicSize));
 	}
 	
 	if(Input.GetMouseButton(2)) {
 		var scroll : float = Input.GetAxis("Mouse X") + Input.GetAxis("Mouse Y");
-		camera.orthographicSize = Mathf.Clamp(camera.orthographicSize + scroll, 5.0, 80.0);
+		GetComponent.<Camera>().orthographicSize = Mathf.Clamp(GetComponent.<Camera>().orthographicSize + scroll, 5.0, 80.0);
 	}
 	
 }

@@ -69,7 +69,7 @@ namespace com.migenius.rs4.unity
             Viewport.OnRestartRender += new RSViewport.RestartRenderCallback(OnRestartRender);
             Viewport.OnRender += new ResponseHandler(OnRender);
 
-            Logger.OnLog += new Logger.LogHandler(onLog);
+            migenius.rs4.core.Logger.OnLog += new migenius.rs4.core.Logger.LogHandler(onLog);
         }
         public void Connect()
         {
@@ -163,7 +163,7 @@ namespace com.migenius.rs4.unity
             if (RenderTarget != null)
             {
                 bool display = DisplayRender && DisplayNav;
-                Color colour = RenderTarget.guiTexture.color;
+                Color colour = RenderTarget.GetComponent<GUITexture>().color;
                 float alpha = colour.a;
                 if (display && alpha < 0.5f)
                 {
@@ -174,7 +174,7 @@ namespace com.migenius.rs4.unity
                     alpha -= (Time.deltaTime / 0.25f) * 0.5f;
                 }
                 colour.a = Mathf.Clamp(alpha, 0.0f, 0.5f);
-                RenderTarget.guiTexture.color = colour;
+                RenderTarget.GetComponent<GUITexture>().color = colour;
             }
 
         }
