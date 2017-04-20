@@ -27,7 +27,7 @@ function Start () {
 }
 
 function FixedUpdate () {
-	inverseMousePosition = Input.mousePosition;
+	var inverseMousePosition = Input.mousePosition;
 	inverseMousePosition.y = Screen.height-inverseMousePosition.y;
 	
 	if(!screenRect.Contains(inverseMousePosition)) return;

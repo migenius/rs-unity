@@ -60,20 +60,21 @@ private var oldTouchCount:int = 0;
 public var touchInputDelay:int = 2;
 private var touchInputCount:int = 0;
 private var initialInputs:Vector2[];
+private var averageInputs:Vector2[];
 
 private var touchTimes:float[];
 
 // Used to look up which navigation function should be replaced based on the defaultMouseNavigation enum.
-private var navigationLookup:Array = [[orbit, pan, look, dolly],
-									  [pan, orbit, look, dolly],
-									  [look, pan, orbit, dolly],
-									  [dolly, pan, look, orbit]];
+private var navigationLookup = [[orbit, pan, look, dolly],
+								[pan, orbit, look, dolly],
+								[look, pan, orbit, dolly],
+								[dolly, pan, look, orbit]];
 									  
 // Used to look up which navigation function should be used for the touch based navigation. 
 // Based off the NavigationMode enum.
-private var touchNavigationLookup:Array = [nullNav, orbit, pan, look, dolly];
+private var touchNavigationLookup = [nullNav, orbit, pan, look, dolly];
 
-private var doubleTapMethodLookup:Array = [nullTap, focus, frameCamera];
+private var doubleTapMethodLookup = [nullTap, focus, frameCamera];
 
 // Saves where the last place that the cursor was clicked/pressed. This is used for the long
 // touch.
@@ -341,7 +342,7 @@ private function frameCamera(fit:float, bounds:Bounds)
 	var maxProjectedX:float = -1;
 	var maxProjectedY:float = -1;
 	
-	for(i = 0; i < 8; i++)
+	for(var i = 0; i < 8; i++)
 	{
 		var projX:float = 0;
 		var projY:float = 0;

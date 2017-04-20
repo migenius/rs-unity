@@ -15,7 +15,7 @@ RealityServer Client Library for the Unity Game Engine
 
 - Requires RealityServer 4.3 build 1346.112 or later to provide the server side scene.
 
-- Requires Unity 5.3.4f1 or later. This was recently updated. If you require support for Unity 4.x please clone an earlier version of the repository. Support for older versions will not be maintained.
+- Requires Unity 5.6.0f3 or later. This was recently updated. If you require support for Unity 4.x please clone an earlier version of the repository. Support for older versions will not be maintained.
 
 - If there is no scene open when you open the project, go to _File → Open_ Scene and select _tableScene.unity_ to get the default scene with RealityServer setup.
 

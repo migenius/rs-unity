@@ -25,7 +25,7 @@ function Start() {
 function LateUpdate () {
 	if(isActive) return;
 
-	inverseMousePosition = Input.mousePosition;
+	var inverseMousePosition = Input.mousePosition;
 	inverseMousePosition.y = Screen.height-inverseMousePosition.y;
 	if(!screenRect.Contains(inverseMousePosition)) return;
 	if(uiRect.Contains(inverseMousePosition)) return;

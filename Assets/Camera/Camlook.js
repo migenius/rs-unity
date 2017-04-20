@@ -42,7 +42,7 @@ function Start() {
 }
 function LateUpdate ()
 {
-	inverseMousePosition = Input.mousePosition;
+	var inverseMousePosition = Input.mousePosition;
 		if(Input.touchCount == 1) inverseMousePosition = Input.GetTouch(0).position;
 	inverseMousePosition.y = Screen.height-inverseMousePosition.y;
 
@@ -174,7 +174,7 @@ function Start ()
 }
 */
 
-function ClampAngle (angle, min, max)
+function ClampAngle (angle:float, min, max)
 {
 	if (angle < -360)
 		angle += 360;
