@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Timers;
 using com.migenius.rs4.core;
 using com.migenius.rs4.math;
 
@@ -19,9 +18,9 @@ namespace com.migenius.rs4.viewport
         public bool UseRenderLoop = false;
         public string RenderLoopHandler = "default";
         public string RenderLoopName = null;
-        public int RenderLoopTimeout = 30;
+        public float RenderLoopTimeout = 30;
         public Hashtable RenderLoopContextOptions = new Hashtable();
-        public int RenderLoopInterval = 200;
+        public float RenderLoopInterval = 0.2f;
         public IRSRenderTarget RenderTarget = null;
         public bool ReceivedFirstRender { get; protected set; }
         public bool RenderLoopRunning { get; protected set; }
@@ -37,8 +36,10 @@ namespace com.migenius.rs4.viewport
             }
         }
 
-        protected Timer NextRenderTimer;
-        protected Timer PollResultTimer;
+        protected bool UpdateNextRender = false;
+        protected bool UpdatePollResult = false;
+        protected float nextRenderTimer = 0;
+        protected float pollResultTimer = 0;
         protected DateTime NextRenderTime = DateTime.Now; 
         protected DateTime LastRenderTime = DateTime.Now;
         protected int LastRenderResultCounter = 0;
@@ -124,6 +125,29 @@ namespace com.migenius.rs4.viewport
             ), OnStartRenderLoop);
         }
 
+        public void Update(float elapsed)
+        {
+            nextRenderTimer += elapsed;
+            pollResultTimer += elapsed;
+
+            if (nextRenderTimer > RenderLoopInterval)
+            {
+                nextRenderTimer -= RenderLoopInterval;
+                if (UpdateNextRender)
+                {
+                    GetNextRenderLoopRender();
+                }
+            }
+            if (pollResultTimer > RenderLoopTimeout / 3)
+            {
+                pollResultTimer -= RenderLoopTimeout / 3;
+                if (UpdatePollResult)
+                {
+                    GetPollResult();
+                }
+            }
+        }
+
         protected void OnStartRenderLoop(RSResponse resp)
         {
             if (resp.IsErrorResponse)
@@ -137,21 +161,8 @@ namespace com.migenius.rs4.viewport
             Status("info", "Waiting for first render");
 
             RenderLoopRunning = true;
-            NextRenderTimer = new Timer();
-            NextRenderTimer.Interval = RenderLoopInterval;
-            NextRenderTimer.Elapsed += new ElapsedEventHandler((object source, ElapsedEventArgs e) => {
-                 GetNextRenderLoopRender();     
-            });
 
-            if (RenderLoopTimeout > 100)
-            {
-                PollResultTimer = new Timer();
-                PollResultTimer.Interval = RenderLoopTimeout * 1000 / 3;
-                PollResultTimer.Elapsed += new ElapsedEventHandler((object source, ElapsedEventArgs e) => {
-                    GetPollResult();
-                });
-                PollResultTimer.Start();
-            }
+            UpdatePollResult = true;
 
             RestartLoop();
         }
@@ -176,10 +187,7 @@ namespace com.migenius.rs4.viewport
                 OnRestartRender();
             }
 
-            if (NextRenderTimer != null)
-            {
-                NextRenderTimer.Stop();
-            }
+            UpdateNextRender = false;
 
             IsConverged = false;
             LastRenderResultCounter = 0;
@@ -205,7 +213,7 @@ namespace com.migenius.rs4.viewport
                 return;
             }
 
-            NextRenderTimer.Stop();
+            UpdateNextRender = false;
 
             LastRenderTime = DateTime.Now;
             Service.AddCommand(new RSRenderCommand(RenderTarget, "render_loop_get_last_render",
@@ -234,9 +242,9 @@ namespace com.migenius.rs4.viewport
                 {
                     Logger.Log("error", "Error getting render loop render.");
                     Status("error", "Error retrieving render");
-                    NextRenderTimer.Stop();
+                    UpdateNextRender = false;
                 }
-                NextRenderTimer.Start();
+                UpdateNextRender = true;
                 return;
             }
 
@@ -255,7 +263,7 @@ namespace com.migenius.rs4.viewport
 
             if (!IsConverged)
             {
-                NextRenderTimer.Start();
+                UpdateNextRender = true;
             }
         }
         protected void GetLastRenderResult()
@@ -280,17 +288,6 @@ namespace com.migenius.rs4.viewport
 
         public void Shutdown()
         {
-            if (NextRenderTimer != null)
-            {
-                Logger.Log("debug", "Shutting down render timer");
-                NextRenderTimer.Stop();
-            }
-            
-            if (PollResultTimer != null)
-            {
-                Logger.Log("debug", "Shutting down render loop timer");
-                PollResultTimer.Stop();
-            }
         }
 
         public void MarkDirty()

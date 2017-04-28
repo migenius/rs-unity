@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
 using System.Text;
-using System.Net;
 using com.migenius.util;
+using UnityEngine.Networking;
+using UnityEngine;
 
 namespace com.migenius.rs4.core
 {
@@ -152,8 +153,65 @@ namespace com.migenius.rs4.core
         * the application can take advantage of any connector specific commands.
         * </p>
         */
-        public class RSService : IAddCommand
+
+    public class RSDownloadHandler : DownloadHandlerScript
+    {
+        private RSService service;
+        private List<byte> bytes;
+        private UnityWebRequest request;
+
+        public RSDownloadHandler(RSService service, UnityWebRequest request)
         {
+            this.service = service;
+            this.bytes = new List<byte>();
+            this.request = request;
+        }
+
+        protected override bool ReceiveData(byte[] data, int dataLength)
+        {
+            bytes.AddRange(data);
+            return true;
+        }
+
+        protected override void CompleteContent()
+        {
+            string response = Encoding.UTF8.GetString(bytes.ToArray());
+            service.ProcessResponses(response);
+            service.m_requests.Remove(request);
+        }
+    }
+
+    public class RSDownloadHandlerRender : DownloadHandlerScript
+    {
+        private RSService service;
+        private List<byte> bytes;
+        private UnityWebRequest request;
+
+        public RSDownloadHandlerRender(RSService service, UnityWebRequest request)
+        {
+            this.service = service;
+            this.bytes = new List<byte>();
+            this.request = request;
+        }
+
+        protected override bool ReceiveData(byte[] data, int dataLength)
+        {
+            bytes.AddRange(data);
+            return true;
+        }
+
+        protected override void CompleteContent()
+        {
+            service.ProcessRenderResponse(bytes.ToArray(), null);
+            service.m_requests.Remove(request);
+        }
+    }
+
+
+    public class RSService : IAddCommand
+        {
+            public List<UnityWebRequest> m_requests;
+
             protected class CallbackWrapper
             {
                 public SequenceHandler Callback { get; protected set; }
@@ -222,6 +280,7 @@ namespace com.migenius.rs4.core
                 Host = host;
                 Port =  port;
                 Timeout = timeout;
+                m_requests = new List<UnityWebRequest>();
 
                 Init();
             }
@@ -590,25 +649,23 @@ namespace com.migenius.rs4.core
 
                     if (seq.ContainsRenderCommands)
                     {
-                        // Do render!
-                        using (RSWebClient webClient = new RSWebClient(Timeout))
-                        {
-                            webClient.DownloadDataCompleted += new DownloadDataCompletedEventHandler(RenderCompleted);
-                            webClient.Headers.Add("Content-Type", "application/json");
-                            Uri uri = new Uri(url + "?json_rpc_request=" + arrStr.ToString());
-                            Logger.Log("debug", "Getting render: " + uri.ToString());
-                            webClient.DownloadDataAsync(uri);
-                        }
+                        string uri = url + "?json_rpc_request=" + arrStr.ToString();
+                        UnityWebRequest webRequest = new UnityWebRequest(uri, UnityWebRequest.kHttpVerbGET);
+                        webRequest.SetRequestHeader("Content-Type", "application/json");
+                        webRequest.downloadHandler = new RSDownloadHandlerRender(this, webRequest);
+                        m_requests.Add(webRequest);
+                        Logger.Log("debug", "Getting render: " + uri);
+                        webRequest.Send();
                     }
                     else
                     {
-                        using (RSWebClient webClient = new RSWebClient(Timeout))
-                        {
-                            webClient.UploadStringCompleted += new UploadStringCompletedEventHandler(NonRenderCompleted);
-                            webClient.Headers.Add("Content-Type", "application/json");
-                            Logger.Log("debug", "Sending to: " + url + " | " + arrStr.ToString());
-                            webClient.UploadStringAsync(new Uri(url), arrStr.ToString());
-                        }
+                        UnityWebRequest webRequest = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST);
+                        webRequest.SetRequestHeader("Content-Type", "application/json");
+                        webRequest.downloadHandler = new RSDownloadHandler(this, webRequest);
+                        webRequest.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(arrStr.ToString()));
+                        m_requests.Add(webRequest);
+                        Logger.Log("info", "Sending to: " + url + " | " + arrStr.ToString());
+                        webRequest.Send();
                     }
                 }
             }
@@ -623,7 +680,7 @@ namespace com.migenius.rs4.core
             /**
              * Handles the callback response for the render binary data.
              */
-            protected void RenderCompleted(object sender, DownloadDataCompletedEventArgs e)
+            /*protected void RenderCompleted(object sender, DownloadDataCompletedEventArgs e)
             {
                 if (e.Cancelled || e.Error != null)
                 {
@@ -642,11 +699,11 @@ namespace com.migenius.rs4.core
                 }
 
                 ProcessRenderResponse(e.Result, null);
-            }
+            }*/
             /**
              * Handles the callback response for normal string data.
              */
-            protected void NonRenderCompleted(object sender, UploadStringCompletedEventArgs e)
+            /*public void NonRenderCompleted(object sender, UploadStringCompletedEventArgs e)
             {
                 if (e.Cancelled || e.Error != null)
                 {
@@ -668,12 +725,12 @@ namespace com.migenius.rs4.core
                     return;
                 }
                 ProcessResponses(s);
-            }
+            }*/
 
             /**
              * Process the given data and error for a render response.
              */
-            protected void ProcessRenderResponse(byte[] data, string error)
+            public void ProcessRenderResponse(byte[] data, string error)
             {
                 RSOutgoingCommand lastCommand = currentCommands[currentCommands.Count - 1];
                 RSRenderCommand renderCommand = lastCommand.Command as RSRenderCommand;
@@ -701,6 +758,7 @@ namespace com.migenius.rs4.core
                     }
                     else
                     {
+                        Debug.Log("ProcessRenderResponse DoResultCallback");
                         lastCommand.DoResultCallback(new Hashtable() { {"result", new Hashtable()} });
                         bool continueProcessing = renderCommand.Target.OnLoad(renderCommand, this, data);
                         if (!continueProcessing)
@@ -726,7 +784,7 @@ namespace com.migenius.rs4.core
                 ProcessCallbacks();
             }
 
-            protected void ProcessResponses(string str)
+            public void ProcessResponses(string str)
             {
                 Logger.Log("debug", "Received: " + str);
                 ArrayList responses = null;

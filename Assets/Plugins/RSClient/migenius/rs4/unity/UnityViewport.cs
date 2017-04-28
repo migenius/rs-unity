@@ -65,7 +65,7 @@ namespace com.migenius.rs4.unity
             Viewport.RenderLoopHandler = RenderLoopHandler;
             Viewport.Renderer = Renderer;
             Viewport.RenderTarget = RenderTarget;
-            Viewport.RenderLoopInterval = RenderLoopInterval;
+            Viewport.RenderLoopInterval = RenderLoopInterval / 1000.0f;
             Viewport.OnRestartRender += new RSViewport.RestartRenderCallback(OnRestartRender);
             Viewport.OnRender += new ResponseHandler(OnRender);
 
@@ -124,6 +124,8 @@ namespace com.migenius.rs4.unity
         // Update is called once per frame
         void Update () 
         {
+            Viewport.Update(Time.deltaTime);
+
             WaitToConnectCounter++;
 
             Quaternion rot = RenderCamera.transform.rotation;

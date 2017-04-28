@@ -8,21 +8,15 @@ namespace com.migenius.rs4.unity
     {
         public byte [] CurrentData { get; protected set; }
         public bool HasNewData { get; protected set; }
-
-        private object DataLock = new object();
-
+        
         protected int newWidth = 0;
         protected int newHeight = 0;
         protected bool newResolution = true;
 
         public bool OnLoad(RSRenderCommand command, RSService service, byte[] data)
         {
-            // Updating the texture has to be done in the game loop and not from a different thread.
-            lock (DataLock)
-            {
-                CurrentData = data;
-                HasNewData = true;
-            }
+            CurrentData = data;
+            HasNewData = true;
 
             return true;
         }
@@ -33,14 +27,11 @@ namespace com.migenius.rs4.unity
 
         public void UpdateResolution(int width, int height)
         {
-            lock (DataLock)
+            if (newWidth != width || newHeight != height)
             {
-                if (newWidth != width || newHeight != height)
-                {
-                    newWidth = width;
-                    newHeight = height;
-                    newResolution = true;
-                }
+                newWidth = width;
+                newHeight = height;
+                newResolution = true;
             }
         }
 
@@ -56,31 +47,28 @@ namespace com.migenius.rs4.unity
 
         void Update()
         {
-            lock (DataLock)
+            if (GetComponent<GUITexture>() != null)
             {
-                if (GetComponent<GUITexture>() != null)
+                Texture2D t2d = null;
+
+                if (GetComponent<GUITexture>().texture == null || (newResolution && newWidth > 0 && newHeight > 0))
                 {
-                    Texture2D t2d = null;
+                    newResolution = false;
+                    t2d = new Texture2D(newWidth, newHeight);
+                    GetComponent<GUITexture>().texture = t2d;
+                }
+                else
+                {
+                    t2d = GetComponent<GUITexture>().texture as Texture2D;
+                }
 
-                    if (GetComponent<GUITexture>().texture == null || (newResolution && newWidth > 0 && newHeight > 0))
-                    {
-                        newResolution = false;
-                        t2d = new Texture2D(newWidth, newHeight);
-                        GetComponent<GUITexture>().texture = t2d;
-                    }
-                    else
-                    {
-                        t2d = GetComponent<GUITexture>().texture as Texture2D;
-                    }
+                if (t2d != null)
+                {
 
-                    if (t2d != null)
+                    if (CurrentData != null && HasNewData)
                     {
-
-                        if (CurrentData != null && HasNewData)
-                        {
-                            t2d.LoadImage(CurrentData);
-                            HasNewData = false;
-                        }
+                        t2d.LoadImage(CurrentData);
+                        HasNewData = false;
                     }
                 }
             }
