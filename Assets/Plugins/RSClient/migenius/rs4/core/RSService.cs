@@ -177,7 +177,15 @@ namespace com.migenius.rs4.core
         {
             string response = Encoding.UTF8.GetString(bytes.ToArray());
             service.ProcessResponses(response);
-            service.m_requests.Remove(request);
+
+            foreach (var service_request in service.m_requests)
+            {
+                if (service_request.Request == request)
+                {
+                    service.m_requests.Remove(service_request);
+                    break;
+                }
+            }
         }
     }
 
@@ -202,15 +210,68 @@ namespace com.migenius.rs4.core
 
         protected override void CompleteContent()
         {
-            service.ProcessRenderResponse(bytes.ToArray(), null);
-            service.m_requests.Remove(request);
+            bool valid = true;
+            bool found = false;
+            foreach (var service_request in service.m_requests)
+            {
+                Debug.Log(
+                    "Request " +
+                    service_request.Request.GetHashCode().ToString() +
+                    " = " +
+                    request.GetHashCode().ToString());
+
+                if (service_request.Request == request)
+                {
+                    valid = service_request.Valid;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                Debug.LogWarning("RSDownloadHandlerRender request not found");
+                return;
+            }
+
+            service.ProcessRenderResponse(bytes.ToArray(), null, valid);
+
+            foreach (var service_request in service.m_requests)
+            {
+                if (service_request.Request == request)
+                {
+                    service.m_requests.Remove(service_request);
+                    break;
+                }
+            }
+
+
+            Debug.LogWarning("RSDownloadHandlerRender requests size " + service.m_requests.Count.ToString());
         }
+    }
+
+    public class RSSeriveRequest
+    {
+        public RSSeriveRequest(UnityWebRequest request)
+        {
+            Request = request;
+        }
+
+        public bool Valid = true;
+        public UnityWebRequest Request;
     }
 
 
     public class RSService : IAddCommand
         {
-            public List<UnityWebRequest> m_requests;
+            public List<RSSeriveRequest> m_requests;
+
+            public void InvalidateRenderRequests()
+            {
+                foreach (var request in m_requests)
+                {
+                    request.Valid = false;
+                }
+            }
 
             protected class CallbackWrapper
             {
@@ -280,7 +341,7 @@ namespace com.migenius.rs4.core
                 Host = host;
                 Port =  port;
                 Timeout = timeout;
-                m_requests = new List<UnityWebRequest>();
+                m_requests = new List<RSSeriveRequest>();
 
                 Init();
             }
@@ -653,8 +714,7 @@ namespace com.migenius.rs4.core
                         UnityWebRequest webRequest = new UnityWebRequest(uri, UnityWebRequest.kHttpVerbGET);
                         webRequest.SetRequestHeader("Content-Type", "application/json");
                         webRequest.downloadHandler = new RSDownloadHandlerRender(this, webRequest);
-                        m_requests.Add(webRequest);
-                        Logger.Log("debug", "Getting render: " + uri);
+                        m_requests.Add(new RSSeriveRequest(webRequest));
                         webRequest.Send();
                     }
                     else
@@ -663,8 +723,7 @@ namespace com.migenius.rs4.core
                         webRequest.SetRequestHeader("Content-Type", "application/json");
                         webRequest.downloadHandler = new RSDownloadHandler(this, webRequest);
                         webRequest.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(arrStr.ToString()));
-                        m_requests.Add(webRequest);
-                        Logger.Log("info", "Sending to: " + url + " | " + arrStr.ToString());
+                        m_requests.Add(new RSSeriveRequest(webRequest));
                         webRequest.Send();
                     }
                 }
@@ -730,7 +789,7 @@ namespace com.migenius.rs4.core
             /**
              * Process the given data and error for a render response.
              */
-            public void ProcessRenderResponse(byte[] data, string error)
+            public void ProcessRenderResponse(byte[] data, string error, bool valid = true)
             {
                 RSOutgoingCommand lastCommand = currentCommands[currentCommands.Count - 1];
                 RSRenderCommand renderCommand = lastCommand.Command as RSRenderCommand;
@@ -756,15 +815,17 @@ namespace com.migenius.rs4.core
                         lastCommand.DoClientErrorCallback(error, -2);
                         renderCommand.Target.OnError(error);
                     }
-                    else
+                    else if (valid)
                     {
-                        Debug.Log("ProcessRenderResponse DoResultCallback");
-                        lastCommand.DoResultCallback(new Hashtable() { {"result", new Hashtable()} });
-                        bool continueProcessing = renderCommand.Target.OnLoad(renderCommand, this, data);
-                        if (!continueProcessing)
+                        if (valid)
                         {
-                            return;
+                            bool continueProcessing = renderCommand.Target.OnLoad(renderCommand, this, data);
+                            if (!continueProcessing)
+                            {
+                                return;
+                            }
                         }
+                        lastCommand.DoResultCallback(new Hashtable() { { "result", new Hashtable()}, {"valid", valid } });
                     }
                 }
                 catch (Exception e)

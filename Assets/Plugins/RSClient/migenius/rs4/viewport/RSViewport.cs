@@ -229,9 +229,10 @@ namespace com.migenius.rs4.viewport
             {
                 return;
             }
-
+            
             // Ignore these renders.
-            if (LastRenderTime > NextRenderTime && OnRender != null)
+            if (LastRenderTime > NextRenderTime && OnRender != null &&
+                (bool)((Hashtable)resp.ServerResponse)["valid"] == true)
             {
                 OnRender(resp);
             }

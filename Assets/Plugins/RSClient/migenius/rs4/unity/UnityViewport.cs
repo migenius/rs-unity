@@ -146,19 +146,30 @@ namespace com.migenius.rs4.unity
             }
 
             DisplayNav = !Input.GetMouseButton(0);
-            if (Viewport != null && RenderCamera != null && Scene.Ready)
-            {
-                Viewport.UpdateResolution(Screen.width, Screen.height);
 
+            if (Viewport != null)
+            {
                 RSCamera cam = Viewport.Camera;
-                cam.FieldOfView = RenderCamera.fieldOfView;
-                cam.Orthographic = RenderCamera.orthographic;
-                cam.OrthographicSize = RenderCamera.orthographicSize;
-                
-                if (Viewport.RenderLoopRunning && cam.HasNewChanges)
+                bool hasChanges = cam.HasNewChanges;
+
+                if (hasChanges && Service != null)
                 {
-                    DisplayRender = false;
-                    Viewport.RestartLoop();
+                    Service.InvalidateRenderRequests();
+                }
+
+                if (RenderCamera != null && Scene.Ready)
+                {
+                    Viewport.UpdateResolution(Screen.width, Screen.height);
+
+                    cam.FieldOfView = RenderCamera.fieldOfView;
+                    cam.Orthographic = RenderCamera.orthographic;
+                    cam.OrthographicSize = RenderCamera.orthographicSize;
+                
+                    if (Viewport.RenderLoopRunning && hasChanges)
+                    {
+                        DisplayRender = false;
+                        Viewport.RestartLoop();
+                    }
                 }
             }
 
