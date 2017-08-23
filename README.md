@@ -11,11 +11,33 @@ RealityServer Client Library for the Unity Game Engine
 5. Navigate the viewport and when you stop navigating you should see a RealityServer rendering.
 6. You can also drag the 3 scene elements in the viewport and the RealityServer objects will move along with them.
 
+## Exporter
+
+The project includes an Editor script for exporting scene data from Unity to RealityServer. You can access this functionality from _Window → RealityServer_ in the Unity Editor. Populate the server, port and filename fields and hit the Convert button.
+
+If your scene is large enough the requests to RealityServer during conversion may exceed the default POST limits (since they will include the mesh information). You can increase this limit in your _realityserver.conf_ file using this directive:
+
+```
+# Increase POST body limit to 100MB
+http_post_body_limit 104857600
+```
+
+Currently the export only replicates geometry (meshes) and the scene graph hierachy. Materials, lights, environment and other options are not currently supported however the _Assets/Editor/RealityServer.cs_ editor script can be used as a reference for furthe development.
+
+Exported element names follow predictable patterns. This allows you to find RealityServer elements that correspond to their Unity counterparts using only information available through the Unity scripting tools. The Naming convention for objects (meshs), instances, groups and group instances respectively is:
+
+- name_id_obj
+- name_id_obj_inst
+- name_id_grp
+- name_id_grp_inst
+
+The use of the id ensures unique names, since Unity does not enforce this in its scene graph but RealityServer requires it for its one.
+
 ## Notes
 
-- Requires RealityServer 4.3 build 1346.112 or later to provide the server side scene.
+- Requires RealityServer 5.0 build 1806.184 or later to provide the server side scene.
 
-- Requires Unity 5.6.0f3 or later. This was recently updated. If you require support for Unity 4.x please clone an earlier version of the repository. Support for older versions will not be maintained.
+- Requires Unity 5.6.3p1 or later. This was recently updated. If you require support for Unity 4.x please clone an earlier version of the repository. Support for older versions will not be maintained.
 
 - If there is no scene open when you open the project, go to _File → Open_ Scene and select _tableScene.unity_ to get the default scene with RealityServer setup.
 
