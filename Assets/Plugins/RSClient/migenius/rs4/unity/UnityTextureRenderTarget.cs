@@ -6,20 +6,12 @@ namespace com.migenius.rs4.unity
 {
     public class UnityTextureRenderTarget : MonoBehaviour, IRSRenderTarget
     {
-        public byte [] CurrentData { get; protected set; }
-        public bool HasNewData { get; protected set; }
-        
         protected int newWidth = 0;
         protected int newHeight = 0;
         protected bool newResolution = true;
 
         public bool OnLoad(RSRenderCommand command, RSService service, byte[] data)
         {
-            CurrentData = data;
-            HasNewData = true;
-
-
-
             if (GetComponent<GUITexture>() != null)
             {
                 Texture2D t2d = null;
@@ -35,20 +27,12 @@ namespace com.migenius.rs4.unity
                     t2d = GetComponent<GUITexture>().texture as Texture2D;
                 }
 
-                if (t2d != null)
+                if (t2d != null && data != null)
                 {
-
-                    if (CurrentData != null && HasNewData)
-                    {
-                        t2d.LoadImage(CurrentData);
-                        HasNewData = false;
-                    }
+                    t2d.LoadImage(data);
                 }
             }
-
-
-
-
+            
             return true;
         }
         public void OnError(string error)
@@ -68,9 +52,6 @@ namespace com.migenius.rs4.unity
 
         void Start()
         {
-            CurrentData = null;
-            HasNewData = false;
-            
             newWidth = Screen.width;
             newHeight = Screen.height;
             newResolution = true;

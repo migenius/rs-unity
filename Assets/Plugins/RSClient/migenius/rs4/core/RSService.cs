@@ -736,55 +736,6 @@ namespace com.migenius.rs4.core
                     command.DoClientErrorCallback(message, CLIENT_SIDE_ERROR_CODE_CONNECTION);
                 }
             }
-            /**
-             * Handles the callback response for the render binary data.
-             */
-            /*protected void RenderCompleted(object sender, DownloadDataCompletedEventArgs e)
-            {
-                if (e.Cancelled || e.Error != null)
-                {
-                    string errorMessage = "Download was cancelled or there was an error.";
-                    if (e.Error != null)
-                    {
-                        errorMessage += "\n- Error: " + e.Error.ToString();
-                        ProcessRenderResponse(null, e.Error.ToString());
-                    }
-                    else
-                    {
-                        ProcessRenderResponse(null, "Cancelled");
-                    }
-                    Logger.Log("error", errorMessage);
-                    return;
-                }
-
-                ProcessRenderResponse(e.Result, null);
-            }*/
-            /**
-             * Handles the callback response for normal string data.
-             */
-            /*public void NonRenderCompleted(object sender, UploadStringCompletedEventArgs e)
-            {
-                if (e.Cancelled || e.Error != null)
-                {
-                    string errorMessage = "Download was cancelled or there was an error.";
-                    if (e.Error != null)
-                    {
-                        errorMessage += "\n- Error: " + e.Error.ToString();
-                    }
-                    Logger.Log("error", errorMessage);
-                    ErrorAllCallbacks("Null response from server");
-                    return;
-                }
-
-                string s = (string)e.Result;
-                if (s == null || s == "")
-                {
-                    Logger.Log("error", "Null or empty result from server.");
-                    ErrorAllCallbacks("Null response from server");
-                    return;
-                }
-                ProcessResponses(s);
-            }*/
 
             /**
              * Process the given data and error for a render response.
