@@ -169,7 +169,7 @@ namespace com.migenius.rs4.core
 
         protected override bool ReceiveData(byte[] data, int dataLength)
         {
-            bytes.AddRange(data);
+            bytes.AddRange(data.Take(dataLength));
             return true;
         }
 
@@ -204,7 +204,7 @@ namespace com.migenius.rs4.core
 
         protected override bool ReceiveData(byte[] data, int dataLength)
         {
-            bytes.AddRange(data);
+            bytes.AddRange(data.Take(dataLength));
             return true;
         }
 
