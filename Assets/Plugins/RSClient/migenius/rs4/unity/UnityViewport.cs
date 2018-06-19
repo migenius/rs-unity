@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -34,7 +35,7 @@ namespace com.migenius.rs4.unity
         public string Host = "localhost";
         public int Port = 8080;
         [Tooltip("Timeout for web requests in seconds")] public int Timeout = 100;
-        public string SceneFilename = @"scenes\meyemII\main.mi";
+        public string SceneFilename = @"scenes\meyemII.mi";
         public string Renderer = "default";
         // Currently only render loop is supported.
         private bool UseRenderLoop = true;
@@ -84,12 +85,32 @@ namespace com.migenius.rs4.unity
             }
 
             StringBuilder str = new StringBuilder();
+            str.Append("RSWS: ");
             foreach (object v in values)
             {
                 str.Append(v.ToString());
                 str.Append(' ');
             }
-            Debug.Log(category + ": " + str.ToString());
+            str.Append("\n"); // supress Unity two line logs
+
+            switch (category)
+            {
+                case "debug":
+                    Debug.Log(str.ToString());
+                    break;
+                case "warn":
+                    Debug.LogWarning(str.ToString());
+                    break;
+                case "error":
+                    Debug.LogError(str.ToString());
+                    break;
+                case "info":
+                    Debug.Log(str.ToString());
+                    break;
+                default:
+                    Debug.Log(str.ToString());
+                    break;
+            }
         }
 
         protected void OnAppInitingCallback(RSCommandSequence seq)
@@ -176,9 +197,8 @@ namespace com.migenius.rs4.unity
             if (RenderTarget != null)
             {
                 bool display = DisplayRender && DisplayNav;
-                Color colour = RenderTarget.GetComponent<GUITexture>().color;
-                float alpha = colour.a;
-                if (display && alpha < 0.5f)
+                float alpha = RenderTarget.GetComponent<CanvasGroup>().alpha;
+                if (display && alpha < 1.0f)
                 {
                     alpha += (Time.deltaTime / 0.25f) * 0.5f;
                 }
@@ -186,8 +206,8 @@ namespace com.migenius.rs4.unity
                 {
                     alpha -= (Time.deltaTime / 0.25f) * 0.5f;
                 }
-                colour.a = Mathf.Clamp(alpha, 0.0f, 0.5f);
-                RenderTarget.GetComponent<GUITexture>().color = colour;
+                alpha = Mathf.Clamp(alpha, 0.0f, 1.0f);
+                RenderTarget.GetComponent<CanvasGroup>().alpha = alpha;
             }
 
         }

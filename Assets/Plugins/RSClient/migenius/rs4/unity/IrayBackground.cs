@@ -3,6 +3,7 @@ using System.Collections;
 using com.migenius.rs4.core;
 using com.migenius.rs4.math;
 using com.migenius.rs4.viewport;
+using Logger = com.migenius.rs4.core.Logger;
 
 namespace com.migenius.rs4.unity
 {
@@ -21,13 +22,13 @@ namespace com.migenius.rs4.unity
             Viewport = GetComponent<UnityViewport>();
             if (Viewport == null)
             {
-                Debug.Log("- Iray background colour component needs a UnityViewport component to work with.");
+                Logger.Log("error", "Iray background colour component needs a UnityViewport component to work with.");
                 this.enabled = false;
                 return;
             }
             if (Viewport.enabled == false)
             {
-                Debug.Log("- Iray background colour component needs a UnityViewport that is enabled to work with.");
+                Logger.Log("error", "Iray background colour component needs a UnityViewport that is enabled to work with.");
                 this.enabled = false;
                 return;
             }
@@ -82,7 +83,7 @@ namespace com.migenius.rs4.unity
         void OnDisable()
         {
             Enabled = false;
-            if (Viewport != null)
+            if (Viewport != null && Viewport.Service != null)
             {
                 Viewport.Service.AddCallback(UpdateIrayBackground);
             }

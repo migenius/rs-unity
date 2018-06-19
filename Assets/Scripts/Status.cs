@@ -1,8 +1,10 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using com.migenius.rs4.viewport;
 using com.migenius.rs4.unity;
 using com.migenius.rs4.core;
+using Logger = com.migenius.rs4.core.Logger;
 
 public class Status : MonoBehaviour {
 
@@ -12,36 +14,29 @@ public class Status : MonoBehaviour {
     public GUIStyle Style;
     public bool Hide = true;
 
-    private float paddingX = 0.0f;
-    private float paddingY = 0.0f;
+    private float paddingX = Screen.width * 0.02f;
+    private float paddingY = Screen.height * 0.04f;
     private bool addedStatusCallback = false;
 	
     void Start () 
     {
         if (Viewport == null)
         {
-            Debug.Log("- Status component needs a UnityViewport to work with.");
+            Logger.Log("error", "Status component needs a UnityViewport to work with.");
             this.enabled = false;
             return;
         }
         if (Viewport.enabled == false)
         {
-            Debug.Log("- Status component needs the UnityViewport to be enabled to work with it.");
+            Logger.Log("error", "Status component needs the UnityViewport to be enabled to work with it.");
             this.enabled = false;
             return;
         }
-        // Number of pixels from the top of the screen that the gui texture current is located at.
-        if (GetComponent<GUITexture>() != null)
-        {
-            paddingX = GetComponent<GUITexture>().transform.position.x * Screen.height;
-            paddingY = (1.0f - GetComponent<GUITexture>().transform.position.y) * Screen.height - GetComponent<GUITexture>().pixelInset.height;
-        }
-
 	}
 
     void OnStatus(string type, string message)
     {
-        Debug.Log("Status - " + type + ": " + message);
+        Logger.Log("info", "Status - " + type + ": " + message);
         if (type == "render")
         {
             Hide = true;
@@ -62,19 +57,19 @@ public class Status : MonoBehaviour {
     void OnGUI()
     {
         GUI.Label(new Rect(paddingX, paddingY, 200, 20), Text, Style);
-        if (OldText != Text && GetComponent<GUITexture>() != null)
+        if (OldText != Text && GetComponent<Image>() != null)
         {
+            // Save the old text and calculate how big the new text is
             OldText = Text;
             GUIContent content = new GUIContent(Text);
             Vector2 size = Style.CalcSize(content);
             float width = size.x + Style.padding.left;
             float height = size.y + Style.padding.top + 2.0f;
-            GetComponent<GUITexture>().pixelInset = new Rect(0, 0, width, height);
 
-            float top = 1.0f - ((paddingY + height) / Screen.height);
-            Vector3 pos = GetComponent<GUITexture>().transform.position;
-            pos.y = top;
-            GetComponent<GUITexture>().transform.position = pos;
+            // Resize the component to fit around the new text size
+            RectTransform rect = GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(width + paddingX, height + paddingY);
+            rect.anchoredPosition = new Vector2((width / 2.0f) + paddingX, -((height / 2.0f) + paddingY));
         }
     }
 
@@ -101,15 +96,17 @@ public class Status : MonoBehaviour {
             //Logger.OnLog += new Logger.LogHandler(OnLog);
         }
 
+        // Fade out the text
         Color textColour = Style.normal.textColor;
         textColour.a = CalcAlpha(!Hide, textColour.a, 1.0f, 0.25f);
         Style.normal.textColor = textColour;
         
-        if (GetComponent<GUITexture>() != null)
+        // Fade out the image background
+        if (GetComponent<Image>() != null)
         {
-            Color textureColour = GetComponent<GUITexture>().color;
+            Color textureColour = GetComponent<Image>().color;
             textureColour.a = CalcAlpha(!Hide, textColour.a, 0.5f, 0.25f);
-            GetComponent<GUITexture>().color = textureColour;
+            GetComponent<Image>().color = textureColour;
         }
 	}
 }

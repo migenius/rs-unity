@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -9,6 +10,7 @@ using com.migenius.rs4.viewport;
 using com.migenius.rs4.unity;
 using com.migenius.rs4.math;
 using com.migenius.util;
+using Logger = com.migenius.rs4.core.Logger;
 
 namespace com.migenius.rs4.unity
 {
@@ -24,6 +26,45 @@ namespace com.migenius.rs4.unity
         bool converting = false;
         bool error = false;
 
+        // List of log message categories to exclude and our logger
+        static List<string> ExcludeLogMessageCategories = new List<string> { "debug" };
+
+        // Simple logger
+        protected static void onLog(string category, params object[] values)
+        {
+            if (ExcludeLogMessageCategories.Contains(category))
+            {
+                return;
+            }
+
+            StringBuilder str = new StringBuilder();
+            str.Append("RSEXP: ");
+            foreach (object v in values)
+            {
+                str.Append(v.ToString());
+                str.Append(' ');
+            }
+            str.Append("\n"); // supress Unity two line logs
+
+            switch (category) {
+                case "debug":
+                    Debug.Log(str.ToString());
+                    break;
+                case "warn":
+                    Debug.LogWarning(str.ToString());
+                    break;
+                case "error":
+                    Debug.LogError(str.ToString());
+                    break;
+                case "info":
+                    Debug.Log(str.ToString());
+                    break;
+                default:
+                    Debug.Log(str.ToString());
+                    break;
+            }
+        }
+
         // Add menu named "RealityServer" to the Window menu
         [MenuItem("Window/RealityServer")]
         static void Init()
@@ -32,6 +73,9 @@ namespace com.migenius.rs4.unity
             RSWindow window = (RSWindow)EditorWindow.GetWindow(typeof(RSWindow));
             window.titleContent.text = "RealityServer";
             window.Show();
+
+            // Set up our simple logger
+            Logger.OnLog += new Logger.LogHandler(onLog);
         }
 
         // Layout our UI
@@ -65,7 +109,19 @@ namespace com.migenius.rs4.unity
             if (resp.IsErrorResponse)
             {
                 error = true;
-                Debug.LogError(resp.ErrorMessage.ToString() + "\n");
+                Logger.Log("error", resp.ErrorMessage.ToString() + " when running command " + resp.Command.ToString());
+            }
+
+            if (resp.IsBatchResponse && resp.HasSubErrorResponse)
+            {
+                error = true;
+                for (int i = 0; i < resp.SubResponses.Count; i++)
+                {
+                    if (resp.SubResponses[i].IsErrorResponse)
+                    {
+                        Logger.Log("error", resp.ErrorMessage.ToString() + " when running command " + resp.Command.ToString());
+                    }
+                }
             }
         }
 
@@ -82,6 +138,7 @@ namespace com.migenius.rs4.unity
             // Generate the mesh data
             status = "Building Mesh Data...";
             Hashtable rsMeshes = BuildMeshes();
+            Hashtable rsLights = BuildLights();
 
             // Get all of the top level game objects
             // Note: GetRootGameObjects() only available in Unity 5.3.2 or later
@@ -110,6 +167,7 @@ namespace com.migenius.rs4.unity
                 GenerateSceneCommands(ref seq, sceneName, sceneRootGroupName);
                 GenerateCameraCommands(ref seq);
                 GenerateMeshCommands(ref seq, rsMeshes);
+                GenerateLightCommands(ref seq, rsLights);
                 GenerateRootgroupAndItemCommands(ref seq, rootGroup, sceneRootGroupName);
 
                 // Export the scene data for testing
@@ -136,9 +194,51 @@ namespace com.migenius.rs4.unity
                 });
                 // Log out all of the commands
                 //foreach (RSOutgoingCommand cmd in seq.Commands) {
-                //    Debug.Log("RSWS: " + cmd.Command.ToJSON(1) + "\n");
+                //    Logger.Log("debug", cmd.Command.ToJSON(1) + "\n");
                 //}
             });
+        }
+
+        // Build the light data in correct format for RealityServer
+        private Hashtable BuildLights()
+        {
+            // Convert all meshes first since hierarchy is not relevant for them
+            Light[] lights = FindObjectsOfType<Light>();
+            Hashtable rsLights = new Hashtable();
+
+            foreach (Light lgt in lights)
+            {
+                // Barf if we see a cookie texture
+                if (lgt.cookie != null)
+                {
+                    Logger.Log("warn", "Light " + lgt.name + " has a cookie texture. These are not supported");
+                }
+                
+                // Store data needed to recreate the light fully
+                Hashtable rsLight = new Hashtable() {
+                    { "intensity", lgt.intensity },
+                    { "color", lgt.color },
+                    { "type", lgt.type.ToString() },
+                    { "spot_angle", lgt.spotAngle },
+                    { "area_size", lgt.areaSize }
+                };
+
+                // Add the light to our list of lights
+                rsLights.Add(lgt.gameObject.name + "_" + lgt.gameObject.GetInstanceID() + "_obj", rsLight);
+
+                // Debugging output
+                /*
+                Logger.Log("debug", "Converted Light - Name: " + lgt.name
+                    + ", ID: " + lgt.GetInstanceID()
+                    + ", GO ID: " + lgt.gameObject.GetInstanceID()
+                    + ", Hash: " + lgt.GetHashCode()
+                    + ", Intensity: " + lgt.intensity
+                    + ", Color: " + lgt.color.ToString()
+                    + ", Type: " + lgt.type.ToString() + "\n");
+                */
+            }
+
+            return (rsLights);
         }
 
         // Build the mesh data in correct format for RealityServer
@@ -148,7 +248,7 @@ namespace com.migenius.rs4.unity
             MeshFilter[] meshFilters = FindObjectsOfType<MeshFilter>();
             Hashtable rsMeshes = new Hashtable();
 
-            // Iterate over ach mesh and build the appropriate mesh data structure
+            // Iterate over each mesh and build the appropriate mesh data structure
             foreach (MeshFilter mf in meshFilters)
             {
                 // Vectors
@@ -190,17 +290,23 @@ namespace com.migenius.rs4.unity
 
                 // Polygons
                 ArrayList polygons = new ArrayList();
-                for (int i = 0; i < mf.sharedMesh.triangles.Length; i += 3)
+                for (int i = 0; i < mf.sharedMesh.subMeshCount; i++)
                 {
-                    ArrayList triangle = new ArrayList();
-                    triangle.Add(mf.sharedMesh.triangles[i]);
-                    triangle.Add(mf.sharedMesh.triangles[i + 1]);
-                    triangle.Add(mf.sharedMesh.triangles[i + 2]);
-                    polygons.Add(triangle);
+                    int[] triangles = mf.sharedMesh.GetTriangles(i);
+                    for (int v = 0; v < triangles.Length; v += 3)
+                    {
+                        ArrayList triangle = new ArrayList();
+                        triangle.Add(i); // material index
+                        triangle.Add(triangles[v]);
+                        triangle.Add(triangles[v + 1]);
+                        triangle.Add(triangles[v + 2]);
+                        polygons.Add(triangle);
+                    }
                 }
 
                 // Mesh
                 Hashtable rsMesh = new Hashtable() {
+                    { "tagged", true },
                     { "vectors", vectors },
                     { "vertices", vertices },
                     { "polygons", polygons }
@@ -211,7 +317,7 @@ namespace com.migenius.rs4.unity
 
                 // Debugging output
                 /*
-                Debug.Log("RSWS: Converted Mesh - Name: " + mf.name
+                Logger.Log("debug", "Converted Mesh - Name: " + mf.name
                     + ", ID: " + mf.GetInstanceID()
                     + ", GO ID: " + mf.gameObject.GetInstanceID()
                     + ", Hash: " + mf.GetHashCode()
@@ -227,14 +333,25 @@ namespace com.migenius.rs4.unity
         // Traverse GameObject and its children
         private void Traverse(GameObject gameObject, ref ArrayList parentGroup)
         {
-            // No mesh in the object or its children, bail out
-            if (gameObject.GetComponentsInChildren<MeshFilter>().Length == 0 && gameObject.GetComponent<MeshFilter>() == null)
+            // Check if our current object contains a mesh or a light
+            bool hasMesh = (gameObject.GetComponent<MeshFilter>() != null);
+            bool hasLight = (gameObject.GetComponent<Light>() != null);
+
+            // Check if children have meshes or lights
+            bool hasLightsInChildren = (gameObject.GetComponentsInChildren<Light>().Length > 0);
+            bool hasMeshesInChildren = (gameObject.GetComponentsInChildren<MeshFilter>().Length > 0);
+
+            // No mesh or lights in the object or its children, bail out
+            if (!hasLightsInChildren && !hasMeshesInChildren && !hasMesh && !hasLight)
             {
                 return;
             }
 
-            // Check if our current object contains a mesh
-            bool hasMesh = (gameObject.GetComponent<MeshFilter>() != null);
+            // Is inactive so mesh will not have been generated
+            if (!gameObject.activeInHierarchy)
+            {
+                return;
+            }
 
             // Everything we need to make an instance later
             Hashtable item = new Hashtable() {
@@ -262,8 +379,100 @@ namespace com.migenius.rs4.unity
             });
             DestroyImmediate(go); // Don't clutter the workspace
 
+            // Fetch and store the material information if present
+            if (gameObject.GetComponent<MeshRenderer>() != null)
+            {
+                Material[] srcMats = gameObject.GetComponent<MeshRenderer>().sharedMaterials;
+                ArrayList mats = new ArrayList();
+                for (int i = 0; i < srcMats.Length; i++)
+                {
+                    // Name and albedo color
+                    Hashtable mat = new Hashtable() {
+                        { "name", srcMats[i].name },
+                        { "color", srcMats[i].color.linear }
+                    };
+
+                    // Check if shader type is supported before reading more properties
+                    if (srcMats[i].shader.name != "Standard")
+                    {
+                        Logger.Log("warn", "Material " + srcMats[i].name + " has unsupported shader type " + srcMats[i].shader.name);
+
+                        // Just take the basic properties and continue
+                        mats.Add(mat);
+                        continue;
+                    }
+
+                    // Albedo map
+                    if (srcMats[i].mainTexture != null) {
+                        // Retreive the texture filename and settings
+                        String path = Application.dataPath;
+                        int idx = path.LastIndexOf("/Assets");
+                        path = path.Remove(idx, path.Length - idx);
+                        path += "/" + AssetDatabase.GetAssetPath(srcMats[i].mainTexture);
+                        mat.Add("texture", new Hashtable() {
+                            { "filename",  path }
+                        });
+                        mat.Add("texture_u_scale", srcMats[i].mainTextureScale.x);
+                        mat.Add("texture_v_scale", srcMats[i].mainTextureScale.y);
+                        mat.Add("texture_u_offset", srcMats[i].mainTextureOffset.x);
+                        mat.Add("texture_v_offset", srcMats[i].mainTextureOffset.y);
+                    }
+
+                    // Handle rendering modes
+                    if (srcMats[i].HasProperty("_Mode"))
+                    {
+                        switch((int)srcMats[i].GetFloat("_Mode"))
+                        {
+                            case 0: // Opaque
+                                // Nothing needed for Opaque (yet)
+                                break;
+                            case 1: // Cutout
+                                // TODO: Handle cutout materials
+                                Logger.Log("warn", "Cutout material mode used in " + srcMats[i].name + " not implemented.");
+                                break;
+                            case 2: // Fade
+                                // It is unlikely that fade materials can be supported in Iray
+                                Logger.Log("warn", "Fade material mode used in " + srcMats[i].name + " not implemented.");
+                                break;
+                            case 3: // Transparent
+                                // TODO: Handle transparent materials
+                                Logger.Log("warn", "Transparent material mode used in " + srcMats[i].name + " not implemented.");
+                                break;
+                        }
+                    }
+
+                    // Handle emission
+                    if (srcMats[i].HasProperty("_EmissionColor") && srcMats[i].IsKeywordEnabled("_EMISSION"))
+                    {
+                        // TODO: Rework conversion to tint and intensity, this is just a hack
+                        Vector4 emission = (Vector4)srcMats[i].GetColor("_EmissionColor");
+                        float intensity = emission.magnitude;
+                        float invMagnitude = 1.0f / intensity;
+                        emission.Scale(new Vector4(invMagnitude, invMagnitude, invMagnitude, invMagnitude));
+                        mat.Add("emission_color", emission);
+                        mat.Add("emission_intensity", intensity);
+                    }
+
+                    // Handle metalic
+                    if (srcMats[i].HasProperty("_Metallic"))
+                    {
+                        mat.Add("metallic", srcMats[i].GetFloat("_Metallic"));
+                    }
+
+                    // Handle smoothness
+                    if (srcMats[i].HasProperty("_Glossiness"))
+                    {
+                        // Invert glossiness to obtain roughness
+                        mat.Add("roughness", (1.0 - srcMats[i].GetFloat("_Glossiness")));
+                    }
+
+                    mats.Add(mat);
+                }
+                item.Add("materials", mats);
+            }
+
             // If we are a leaf we can just add and finish, if not we need to traverse further
-            if (gameObject.transform.childCount == 0 && hasMesh)
+            if (gameObject.transform.childCount == 0 && (hasMesh || hasLight))
             {
                 // leaf mesh node
                 item["type"] = "instance";
@@ -276,14 +485,14 @@ namespace com.migenius.rs4.unity
                 item.Add("items", items);
                 parentGroup.Add(item);
                 // if transform has a mesh move it to the items array with identity transform
-                if (hasMesh)
+                if (hasMesh || hasLight)
                 {
-                    Hashtable meshItem = new Hashtable() {
+                    Hashtable instItem = new Hashtable() {
                         { "name", gameObject.name },
                         { "type", "instance" },
                         { "id", gameObject.GetInstanceID() }
                     };
-                    items.Add(meshItem);
+                    items.Add(instItem);
                 }
                 // Process the children
                 foreach (Transform child in gameObject.transform)
@@ -353,13 +562,13 @@ namespace com.migenius.rs4.unity
                 "filename", "${shader}/base.mdl"
             ), CheckResponse);
             seq.AddCommand(new RSCommand("import_scene_elements",
-                "filename", "${shader}/material_examples/architectural.mdl"
+                "filename", "${shader}/migenius/unity.mdl"
             ), CheckResponse);
             seq.AddCommand(new RSCommand("create_material_instance_from_definition",
                 "arguments", new Hashtable() {
-                    { "reflectivity", 0.0 }
+                    { "diffuse_color", new Hashtable() { { "r", 0.7 }, { "g", 0.7 }, { "b", 0.7 } } }
                 },
-                "material_definition_name", "mdl::material_examples::architectural::architectural",
+                "material_definition_name", "mdl::migenius::unity::diffuse",
                 "material_name", "default_mat"
             ), CheckResponse);
             seq.AddCommand(new RSCommand("create_function_call_from_definition",
@@ -438,7 +647,7 @@ namespace com.migenius.rs4.unity
             Camera cam = Camera.main;
             if (!cam)
             {
-                Debug.LogError("Camera not defined.\n");
+                Logger.Log("error", "Camera not defined. Have you set the MainCamera tag on a camera?\n");
                 return;
             }
             Transform camTrans = cam.transform;
@@ -495,6 +704,113 @@ namespace com.migenius.rs4.unity
             }
         }
 
+        // Generate the RealityServer commands for all of the light data
+        private void GenerateLightCommands(ref RSCommandSequence seq, Hashtable rsLights)
+        {
+            // Create each light
+            foreach (string key in rsLights.Keys)
+            {
+                // Grab our light varialbes
+                Hashtable light = (Hashtable)rsLights[key];
+                String mdlInst = key + "_lgt_mat";
+                float intensity = (float)light["intensity"];
+                Color color = (Color)light["color"];
+                String type = (String)light["type"];
+                Vector2 areaSize = (Vector2)light["area_size"];
+                float spotAngle = (float)light["spot_angle"];
+                String mdlDef = "mdl::migenius::unity::light_spot";
+
+                // Create the actual light (blank for now)
+                seq.AddCommand(new RSCommand("create_element",
+                    "element_name", key,
+                    "element_type", "Light"
+                ), CheckResponse);
+
+                // Setup the light according to the type
+                switch (type)
+                {
+                    case "Spot":
+                        mdlDef = "mdl::migenius::unity::light_spot";
+                        seq.AddCommand(new RSCommand("light_set_type",
+                            "light_name", key,
+                            "type", "point"
+                        ), CheckResponse);
+                        break;
+                    case "Directional":
+                        mdlDef = "mdl::migenius::unity::light_omni";
+                        seq.AddCommand(new RSCommand("light_set_type",
+                            "light_name", key,
+                            "type", "spot" // bug in RealityServer, infinite does not work but spot creates infinite anyway so use it
+                        ), CheckResponse);
+                        break;
+                    case "Point":
+                        mdlDef = "mdl::migenius::unity::light_omni";
+                        seq.AddCommand(new RSCommand("light_set_type",
+                            "light_name", key,
+                            "type", "point"
+                        ), CheckResponse);
+                        break;
+                    case "Area":
+                        mdlDef = "mdl::migenius::unity::light_omni";
+                        seq.AddCommand(new RSCommand("light_set_type",
+                            "light_name", key,
+                            "type", "point"
+                        ), CheckResponse);
+                        seq.AddCommand(new RSCommand("light_set_area_shape",
+                            "light_name", key,
+                            "area_shape", "rectangle" // Unity only supports rectangle for now
+                        ), CheckResponse);
+                        seq.AddCommand(new RSCommand("light_set_area_size",
+                            "light_name", key,
+                            "area_size", new Hashtable() { {"x", areaSize.x }, { "y", areaSize.y} }
+                        ), CheckResponse);
+                        break;
+                    default:
+                        Logger.Log("warn", "Light " + key + " has unsupported type " + type + ".");
+                        break;
+                }
+
+                // Create the MDL instance and attach to the light
+                seq.AddCommand(new RSCommand("create_material_instance_from_definition",
+                    "arguments", new Hashtable() {
+                        { "tint",  new Hashtable() { { "r", color.r }, { "g", color.g }, { "b", color.b } } },
+                        { "intensity", intensity }
+                    },
+                    "material_definition_name", mdlDef,
+                    "material_name", mdlInst
+                ), CheckResponse);
+                seq.AddCommand(new RSCommand("element_set_attribute",
+                    "element_name", key,
+                    "attribute_name", "material",
+                    "attribute_type", "Ref",
+                    "attribute_value", mdlInst,
+                    "create", true
+                ), CheckResponse);
+
+                // Set the spotlight angle
+                if (type == "Spot")
+                {
+                    // TODO: fix exponent calculation, this is not correct
+                    float exponent = 100.0f - spotAngle;
+                    seq.AddCommand(new RSCommand("mdl_set_argument",
+                        "element_name", mdlInst,
+                        "argument_name", "spot_exponent",
+                        "value", exponent
+                    ), CheckResponse);
+                }
+
+                // Reverse emission of area lights
+                if (type == "Area")
+                {
+                    seq.AddCommand(new RSCommand("mdl_set_argument",
+                        "element_name", mdlInst,
+                        "argument_name", "direction",
+                        "value", "back"
+                    ), CheckResponse);
+                }
+            }
+        }
+
         // Generate the RealityServer commands for all of the mesh data
         private void GenerateMeshCommands(ref RSCommandSequence seq, Hashtable rsMeshes)
         {
@@ -523,12 +839,6 @@ namespace com.migenius.rs4.unity
             // Process children if present
             if (item["items"] != null)
             {
-                //Debug.Log("RSWS: Start Group Commands");
-                //foreach (RSOutgoingCommand cmd in groupCommands.Commands)
-                //{
-                //    Debug.Log("RSWS: " + cmd.ToJSON());
-                //}
-
                 // Recurse for each child
                 foreach (Hashtable nextItem in (ArrayList)item["items"])
                 {
@@ -565,7 +875,7 @@ namespace com.migenius.rs4.unity
                         "group_name", itemName,
                         "item_name", groupItemName
                     ), CheckResponse);
-                    //Debug.Log("RSWS: Attaching " + groupItemName + " to " + itemName);
+                    //Logger.Log("debug", "Attaching " + groupItemName + " to " + itemName);
                 }
             }
             else if (item["type"].ToString() == "instance")
@@ -579,7 +889,7 @@ namespace com.migenius.rs4.unity
             seq.AddCommand(new RSCommand("create_element",
                 "element_name", instanceName,
                 "element_type", "Instance"
-             ), CheckResponse);
+                ), CheckResponse);
             seq.AddCommand(new RSCommand("instance_attach",
                 "instance_name", instanceName,
                 "item_name", itemName
@@ -589,14 +899,195 @@ namespace com.migenius.rs4.unity
                 "transform", item["transform"]
             ), CheckResponse);
 
+            // List of materials names
+            ArrayList materialNames = new ArrayList();
+
+            // If materials is defined then use
+            if (item.ContainsKey("materials"))
+            {
+                // Object can have multiple materials
+                ArrayList mats = (ArrayList)item["materials"];
+
+                // Process them all
+                for (int i = 0; i < mats.Count; i++)
+                {
+                    Hashtable mat = (Hashtable)mats[i];
+                    Color color = (Color)mat["color"];
+                    float metallic = 0.0f;
+                    float roughness = 0.5f;
+
+                    // Update metallic
+                    if (mat.Contains("metallic"))
+                    {
+                        metallic = (float)mat["metallic"];
+                    }
+
+                    // Update roughness
+                    if (mat.Contains("roughness"))
+                    {
+                        double r = (double)mat["roughness"];
+                        roughness = (float)r;
+                    }
+
+                    // Keep track of materials we made
+                    materialNames.Add((String)mat["name"]);
+
+                    // Create the material using the found parameters
+                    if (mat.Contains("emission_color") && mat.Contains("emission_intensity"))
+                    {
+                        Vector4 emissionColor = (Vector4)mat["emission_color"];
+                        float emissionIntensity = (float)mat["emission_intensity"];
+                        seq.AddCommand(new RSCommand("create_material_instance_from_definition",
+                            "arguments", new Hashtable() {
+                                { "tint",  new Hashtable() { { "r", emissionColor.x }, { "g", emissionColor.y }, { "b", emissionColor.z } } },
+                                { "intensity", emissionIntensity }
+                            },
+                            "material_definition_name", "mdl::migenius::unity::light_omni",
+                            "material_name", (String)mat["name"]
+                        ), CheckResponse);
+                    }
+                    else if (metallic < 0.001 && roughness > 0.99) // replace with diffuse material
+                    {
+                        seq.AddCommand(new RSCommand("create_material_instance_from_definition",
+                            "arguments", new Hashtable() {
+                                { "diffuse_color",  new Hashtable() { { "r", color.r }, { "g", color.g }, { "b", color.b } } }
+                            },
+                            "material_definition_name", "mdl::migenius::unity::diffuse",
+                            "material_name", (String)mat["name"]
+                        ), CheckResponse);
+                    }
+                    else
+                    { // normal PBR material
+                        seq.AddCommand(new RSCommand("create_material_instance_from_definition",
+                            "arguments", new Hashtable() {
+                                { "base_color",  new Hashtable() { { "r", color.r }, { "g", color.g }, { "b", color.b } } },
+                                { "metallic", metallic },
+                                { "roughness", roughness }
+                            },
+                            "material_definition_name", "mdl::migenius::unity::metallic_roughness",
+                            "material_name", (String)mat["name"]
+                        ), CheckResponse);
+                    }
+
+                    // Attach texture if present
+                    if (mat.Contains("texture"))
+                    {
+                        string textureArgument = (metallic < 0.001 && roughness > 0.99) ? "diffuse_color" : "base_color";
+                        Hashtable tex = (Hashtable)mat["texture"];
+
+                        // Build texture options for tiling and offset
+                        Hashtable texOptions = new Hashtable() {
+                            { "scaling",  new Hashtable() {
+                                { "x", (mat.Contains("texture_u_scale")) ? mat["texture_u_scale"] : 1.0 },
+                                { "y", (mat.Contains("texture_v_scale")) ? mat["texture_v_scale"] : 1.0 },
+                                { "z", 1.0 } }
+                            },
+                            { "translation",  new Hashtable() {
+                                { "x", (mat.Contains("texture_u_offset")) ? mat["texture_u_offset"] : 0.0 },
+                                { "y", (mat.Contains("texture_v_offset")) ? mat["texture_v_offset"] : 0.0 },
+                                { "z", 0.0 } }
+                            }
+                        };
+
+                        // Read and base64 encode the texture data
+                        String texFilename = (String)tex["filename"];
+                        String texBaseFilename = Path.GetFileName(texFilename);
+                        String texFormat = Path.GetExtension(texFilename).Replace(".", "");
+                        byte[] texBytes = File.ReadAllBytes(texFilename);
+                        String texString = System.Convert.ToBase64String(texBytes);
+
+                        // Create the image and texture elements
+                        seq.AddCommand(new RSCommand("create_element",
+                            "element_name", "img_" + texFilename,
+                            "element_type", "Image"
+                        ), CheckResponse);
+                        seq.AddCommand(new RSCommand("image_reset_from_base64",
+                            "image_name", "img_" + texFilename,
+                            "data", texString,
+                            "image_format", texFormat
+                        ), CheckResponse);
+                        seq.AddCommand(new RSCommand("create_element",
+                            "element_name", "tex_" + texFilename,
+                            "element_type", "Texture"
+                        ), CheckResponse);
+                        seq.AddCommand(new RSCommand("texture_set_image",
+                            "texture_name", "tex_" + texFilename,
+                            "image_name", "img_" + texFilename
+                        ), CheckResponse);
+
+                        // Save the in-memory texture to disk and reload them
+                        // this greatly reduces the size of the resulting .mi file
+                        ArrayList commands = new ArrayList();
+                        String imageCmdId = Guid.NewGuid().ToString();
+                        String typeCmdId = Guid.NewGuid().ToString();
+                        commands.Add(new Hashtable() {
+                            {  "name", "texture_get_image" },
+                            {
+                                "params", new Hashtable() {
+                                    { "texture_name", "tex_" + texFilename }
+                                }
+                            },
+                            { "id", imageCmdId }
+                        });
+                        commands.Add(new Hashtable() {
+                            {  "name", "image_get_type" },
+                            {
+                                "params", new Hashtable() {
+                                    { "image_name", "${" + imageCmdId + "}" }
+                                }
+                            },
+                            { "id", typeCmdId }
+                        });
+                        commands.Add(new Hashtable() {
+                            {  "name", "image_save_to_disk" },
+                            {
+                                "params", new Hashtable() {
+                                    { "filename", "scenes/" + filename.Substring(0, filename.Length - 3) + "_tex_" + texBaseFilename },
+                                    { "format", texFormat },
+                                    { "image_name", "${" + imageCmdId + "}" },
+                                    { "pixel_type", "${" + typeCmdId + "}" }
+                                }
+                            }
+                        });
+                        commands.Add(new Hashtable() {
+                            {  "name", "image_reset_file" },
+                            {
+                                "params", new Hashtable() {
+                                    { "filename", "scenes/" + filename.Substring(0, filename.Length - 3) + "_tex_" + texBaseFilename },
+                                    { "image_name", "${" + imageCmdId + "}" }
+                                }
+                            }
+                        });
+                        seq.AddCommand(new RSCommand("smart_batch",
+                            "commands", commands
+                        ), CheckResponse);
+
+                        // Attach our new texture to the material
+                        seq.AddCommand(new RSCommand("material_attach_texture_to_argument",
+                            "argument_name", textureArgument,
+                            "create_from_file", false,
+                            "material_name", (String)mat["name"],
+                            "texture_name", "tex_" + texFilename,
+                            "texture_options", texOptions
+                        ), CheckResponse);
+                    }
+                }
+            }
+
+            // If we didn't get a material then add the default one
+            if (materialNames.Count == 0)
+            {
+                materialNames.Add("default_mat");
+            }
+
             // If a real instance then add the default material
             if (item["type"].ToString() == "instance")
             {
                 seq.AddCommand(new RSCommand("element_set_attribute",
                     "element_name", instanceName,
                     "attribute_name", "material",
-                    "attribute_type", "Ref",
-                    "attribute_value", "default_mat",
+                    "attribute_type", "Ref[]",
+                    "attribute_value", materialNames,
                     "create", true
                 ), CheckResponse);
             }

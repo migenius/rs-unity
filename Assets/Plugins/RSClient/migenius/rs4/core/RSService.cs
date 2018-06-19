@@ -214,12 +214,6 @@ namespace com.migenius.rs4.core
             bool found = false;
             foreach (var service_request in service.m_requests)
             {
-                Debug.Log(
-                    "Request " +
-                    service_request.Request.GetHashCode().ToString() +
-                    " = " +
-                    request.GetHashCode().ToString());
-
                 if (service_request.Request == request)
                 {
                     valid = service_request.Valid;
@@ -229,7 +223,7 @@ namespace com.migenius.rs4.core
             }
             if (!found)
             {
-                Debug.LogWarning("RSDownloadHandlerRender request not found");
+                Logger.Log("warn", "RSDownloadHandlerRender request not found");
                 return;
             }
 
@@ -243,9 +237,6 @@ namespace com.migenius.rs4.core
                     break;
                 }
             }
-
-
-            Debug.LogWarning("RSDownloadHandlerRender requests size " + service.m_requests.Count.ToString());
         }
     }
 
@@ -715,7 +706,7 @@ namespace com.migenius.rs4.core
                         webRequest.SetRequestHeader("Content-Type", "application/json");
                         webRequest.downloadHandler = new RSDownloadHandlerRender(this, webRequest);
                         m_requests.Add(new RSSeriveRequest(webRequest));
-                        webRequest.Send();
+                        webRequest.SendWebRequest();
                     }
                     else
                     {
@@ -724,7 +715,7 @@ namespace com.migenius.rs4.core
                         webRequest.downloadHandler = new RSDownloadHandler(this, webRequest);
                         webRequest.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(arrStr.ToString()));
                         m_requests.Add(new RSSeriveRequest(webRequest));
-                        webRequest.Send();
+                        webRequest.SendWebRequest();
                     }
                 }
             }

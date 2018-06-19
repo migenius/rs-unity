@@ -1,0 +1,268 @@
+mdl 1.3;
+
+using tex import *;
+using anno import *;
+
+using df import custom_curve_layer;
+using df import diffuse_reflection_bsdf;
+using df import directional_factor;
+using df import microfacet_ggx_smith_bsdf;
+using df import scatter_mode;
+using df import weighted_layer;
+using df import spot_edf;
+using df import diffuse_edf;
+using math import luminance;
+using math import max;
+using math import PI;
+using state import normal;
+using state import texture_tangent_u;
+
+export enum emission_type [[ hidden() ]]
+{
+    lumen_m2 [[ description("lumen/m2") ]],
+    lumen [[ description("lumen") ]],
+    candela [[ description("candela") ]],
+    nit [[ description("nit (candela/m2)") ]]
+};
+
+export material metallic_roughness(
+    color base_color = color(0.7f)
+    [[
+        display_name("Base Color"),
+        in_group("Base Parameters")
+    ]],
+    float metallic = 0.f
+    [[
+        display_name("Metallic"),
+        in_group("Base Parameters"),
+        hard_range(0,1)
+    ]],
+    float specular_level = 0.5f
+    [[
+        display_name("Specular Level"),
+        in_group("Adjustments"),
+        hard_range(0,1)
+    ]],
+    float roughness = 0.5f
+    [[
+        display_name("Roughness"),
+        in_group("Base Parameters"),
+        hard_range(0,1)
+    ]],
+    float3 normal = state::normal()
+    [[
+        display_name("Normal"),
+        in_group("Geometry")
+    ]]
+) = material(
+    surface: material_surface(
+        scattering: weighted_layer(
+            weight: metallic,
+            layer: directional_factor(
+                normal_tint: base_color,
+                grazing_tint: color(1.f, 1.f, 1.f),
+                exponent: 3.f,
+                base: microfacet_ggx_smith_bsdf(
+                    roughness_u: roughness * roughness,
+                    roughness_v: roughness * roughness,
+                    tint: color(1.f, 1.f, 1.f),
+                    mode: scatter_reflect
+                )
+            ),
+            base: custom_curve_layer(
+                normal_reflectivity: specular_level * 0.08f,
+                grazing_reflectivity: 1.f,
+                exponent: 5.f,
+                weight: 1.f,
+                layer: microfacet_ggx_smith_bsdf(
+                    roughness_u: roughness * roughness,
+                    roughness_v: roughness * roughness,
+                    tint: color(1.f, 1.f, 1.f),
+                    mode: scatter_reflect
+                ),
+                base: diffuse_reflection_bsdf(
+                    tint: base_color,
+                    roughness: 0.f
+                ),
+                normal: state::normal()
+            ),
+            normal: state::normal()
+        )
+    ),
+    geometry: material_geometry(
+        normal: normal
+    )
+);
+
+export material specular_glossiness(
+    color base_color = color(0.7f)
+    [[
+        display_name("Base Color"),
+        in_group("Base Parameters")
+    ]],
+    color specular = color(0.7f)
+    [[
+        display_name("Specular"),
+        in_group("Base Parameters")
+    ]],
+    float glossiness = 0.5f
+    [[
+        display_name("Glossiness"),
+        in_group("Base Parameters"),
+        hard_range(0,1)
+    ]],
+    float3 normal = state::normal()
+    [[
+        display_name("Normal"),
+        in_group("Geometry")
+    ]]
+) = material(
+    surface: material_surface(
+        scattering: custom_curve_layer(
+            normal_reflectivity: luminance(specular),
+            grazing_reflectivity: 1.f,
+            exponent: 5.f,
+            weight: 1.f,
+            layer: directional_factor(
+                normal_tint: specular,
+                grazing_tint: color(1.f, 1.f, 1.f),
+                exponent: 3.f,
+                base: microfacet_ggx_smith_bsdf(
+                    roughness_u: max(1.f - glossiness, 0.f) * max(1.f - glossiness, 0.f),
+                    roughness_v: max(1.f - glossiness, 0.f) * max(1.f - glossiness, 0.f),
+                    tint: color(1.f, 1.f, 1.f),
+                    mode: scatter_reflect
+                )
+            ),
+            base: diffuse_reflection_bsdf(
+                tint: base_color,
+                roughness: 0.f
+            ),
+            normal: state::normal()
+        )
+    ),
+    geometry: material_geometry(
+        normal: normal
+    )
+);
+
+export material diffuse(
+    color diffuse_color = color(0.8f)
+    [[
+        display_name("Diffuse Color"),
+        in_group("Base Parameters")
+    ]],
+    float roughness = 0.0f
+    [[
+        display_name("Diffuse roughness"),
+        hard_range(0.0,1.),
+        in_group("Base Parameters")
+    ]],
+    float3 normal = state::normal()
+    [[
+        display_name("Normal"),
+        in_group("Geometry")
+    ]]
+) = material(
+    thin_walled: true,
+    surface: material_surface(
+        scattering: weighted_layer(
+            weight: 1.f,
+            normal: normal,
+            layer: diffuse_reflection_bsdf(
+                roughness: roughness,
+                tint: diffuse_color
+            )
+        )
+    )
+);
+
+export material light_spot (
+    color tint = color(1.)
+    [[
+        display_name("Color"),
+        in_group("Emission")
+    ]],
+    uniform float intensity = 1000
+    [[
+        display_name("Intensity"),
+        in_group("Emission")
+    ]],
+    uniform float spot_exponent = 30
+    [[
+        display_name("Exponent"),
+        in_group("Shape")
+    ]],
+    uniform emission_type unit = lumen_m2
+    [[
+        display_name("Unit for emission"),
+        in_group("Units")
+    ]]
+) = 
+let{
+    uniform float factor = (spot_exponent == 0) ? 4 * PI : 2 * PI / (spot_exponent + 1);
+    uniform float unit_intensity = (unit==lumen || unit==lumen_m2) ? intensity : intensity * factor; 
+    uniform intensity_mode imode = (unit==lumen || unit==candela) ? intensity_power : intensity_radiant_exitance;    
+} in  material (
+    surface: material_surface (
+        emission:  material_emission (
+            emission: df::spot_edf(
+                exponent: spot_exponent,
+                global_distribution: true,
+                global_frame: float3x3(
+                    1.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0
+                )
+            ),
+            intensity: tint * unit_intensity,
+            mode: imode
+        )
+    )
+);
+
+export enum emission_direction [[ hidden() ]]
+{
+    front [[ description("Front") ]],
+    back [[ description("Back") ]],
+    both [[ description("Both") ]]
+};
+
+export material light_omni (
+    color tint = color(1.)
+    [[
+        display_name("Color"),
+        in_group("Emission")
+    ]],
+    uniform float intensity = 1000
+    [[
+        display_name("Intensity"),
+        in_group("Emission")
+    ]],
+    uniform emission_type unit = lumen_m2
+    [[
+        display_name("Unit for emission"),
+        in_group("Units")
+    ]],
+    uniform emission_direction direction = front
+    [[
+        display_name("Direction for emission"),
+        in_group("Emission")
+    ]]
+) = let {
+    uniform float unit_intensity = (unit==lumen || unit==lumen_m2) ? intensity : intensity * PI;
+    uniform intensity_mode imode = (unit==lumen || unit==candela) ? intensity_power : intensity_radiant_exitance;
+    material emission = material(
+        surface: material_surface (
+            emission: material_emission (
+                emission: diffuse_edf(),
+                intensity: tint * unit_intensity,
+                mode: imode
+            )
+        )
+    );
+} in material (
+    thin_walled: true,
+    surface: (direction==front || direction==both) ? emission.surface : material_surface(),
+    backface: (direction==back || direction==both) ? emission.surface : material_surface()
+);

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.IO;
 using com.migenius.rs4.core;
 
@@ -12,19 +13,19 @@ namespace com.migenius.rs4.unity
 
         public bool OnLoad(RSRenderCommand command, RSService service, byte[] data)
         {
-            if (GetComponent<GUITexture>() != null)
+            if (GetComponent<RawImage>() != null)
             {
                 Texture2D t2d = null;
 
-                if (GetComponent<GUITexture>().texture == null || (newResolution && newWidth > 0 && newHeight > 0))
+                if (GetComponent<RawImage>() == null || (newResolution && newWidth > 0 && newHeight > 0))
                 {
                     newResolution = false;
                     t2d = new Texture2D(newWidth, newHeight);
-                    GetComponent<GUITexture>().texture = t2d;
+                    GetComponent<RawImage>().texture = t2d;
                 }
                 else
                 {
-                    t2d = GetComponent<GUITexture>().texture as Texture2D;
+                    t2d = GetComponent<RawImage>().texture as Texture2D;
                 }
 
                 if (t2d != null && data != null)

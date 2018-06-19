@@ -1,9 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using com.migenius.rs4.unity;
 using com.migenius.rs4.core;
 using com.migenius.rs4.math;
 using com.migenius.rs4.viewport;
+using Logger = com.migenius.rs4.core.Logger;
 
 namespace com.migenius.unity {
 	public class Drag : MonoBehaviour {
@@ -22,17 +23,17 @@ namespace com.migenius.unity {
 			if (rs != null) {
 				Viewport = rs.GetComponent<UnityViewport> ();
 				if (Viewport == null) {
-					Debug.Log ("- object drag component needs a UnityViewport component to work with.");
+					Logger.Log("error", "Object drag component needs a UnityViewport component to work with.");
 					this.enabled = false;
 					return;
 				}
 				if (Viewport.enabled == false) {
-					Debug.Log ("- object drag component needs a UnityViewport that is enabled to work with.");
+					Logger.Log("error", "Object drag component needs a UnityViewport that is enabled to work with.");
 					this.enabled = false;
 					return;
 				}
 			} else {
-				Debug.Log ("- object drag requires RealityServer");
+				Logger.Log("error", "Object drag requires RealityServer");
 				this.enabled = false;
 				return;
 			}
@@ -41,12 +42,12 @@ namespace com.migenius.unity {
 			if (cam != null) {
 				NavigationScript = cam.GetComponent<CameraNavigation> ();
 				if (NavigationScript == null) {
-					Debug.Log ("- object drag requires CameraNavigation");
+					Logger.Log("error", "Object drag requires CameraNavigation");
 					this.enabled = false;
 					return;
 				}
 			} else {
-				Debug.Log ("- object drag requires Main Camera");
+				Logger.Log("error", "Object drag requires Main Camera");
 				this.enabled = false;
 				return;
 			}
@@ -59,8 +60,6 @@ namespace com.migenius.unity {
 		
 		protected void UpdateMovement(IAddCommand seq)
 		{
-			//Debug.Log ("- move in RS " + RealityServerObject + " " + NewPosition) ;
-
 			Matrix3D m = new Matrix3D ();
 			// NB: X is not negated to deal with handedness difference between RS and Unity
 			m.SetTranslation(NewPosition.x,-NewPosition.y,-NewPosition.z);

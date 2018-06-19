@@ -475,11 +475,6 @@ public class MiniJSON
 
 	protected bool SerializeValue(object value, StringBuilder builder)
 	{
-		
-		// Type t = value.GetType();
-		
-		// Debug.Log("type: " + t.ToString() + " isArray: " + t.IsArray);
-		
 		if (value.GetType().IsArray) {
 			SerializeArray(new ArrayList((ICollection) value), builder);
 		} else if (value is string) {
