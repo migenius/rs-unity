@@ -16,5 +16,8 @@ namespace com.migenius.rs4.core
         // Should be called when a render of a different size is being returned.
         // Not all render targets are going to care about this.
         void UpdateResolution(int width, int height);
+
+        // Whether our render target is still valid for use
+        bool Valid();
     }
 }

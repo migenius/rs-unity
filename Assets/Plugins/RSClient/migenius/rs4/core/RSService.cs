@@ -742,6 +742,12 @@ namespace com.migenius.rs4.core
                     return;
                 }
 
+                // If our render target can't be used anymore then ignore
+                if (renderCommand.Target != null && !renderCommand.Target.Valid())
+                {
+                    return;
+                }
+
                 try
                 {
                     if (data != null && data.Length >= 2 && (char)data[0] == '[' && (char)data[1] == '{')

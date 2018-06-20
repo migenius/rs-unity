@@ -10,6 +10,7 @@ namespace com.migenius.rs4.unity
         protected int newWidth = 0;
         protected int newHeight = 0;
         protected bool newResolution = true;
+        private bool isDestoryed = false;
 
         public bool OnLoad(RSRenderCommand command, RSService service, byte[] data)
         {
@@ -60,6 +61,16 @@ namespace com.migenius.rs4.unity
 
         void Update()
         {
+        }
+
+        void OnDestroy()
+        {
+            isDestoryed = true;
+        }
+
+        public bool Valid()
+        {
+            return !isDestoryed;
         }
     }
 }
