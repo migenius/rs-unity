@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Reflection;
 using com.migenius.rs4.unity;
 using com.migenius.rs4.core;
 using com.migenius.rs4.math;
@@ -10,7 +11,7 @@ namespace com.migenius.unity {
 	public class Drag : MonoBehaviour {
 		private Vector3 ObjectInitialPosition;
 		private Vector3 Delta;
-		private CameraNavigation NavigationScript;
+		private Component NavigationScript;
 		private UnityViewport Viewport;
 		private bool Moved;
 		private Vector3 LastMousePosition;
@@ -40,7 +41,7 @@ namespace com.migenius.unity {
 
 			Camera cam = Viewport.RenderCamera;
 			if (cam != null) {
-				NavigationScript = cam.GetComponent<CameraNavigation> ();
+				NavigationScript = cam.GetComponent("CameraNavigation");
 				if (NavigationScript == null) {
 					Logger.Log("error", "Object drag requires CameraNavigation");
 					this.enabled = false;
@@ -89,17 +90,18 @@ namespace com.migenius.unity {
 			
 			Delta = gameObject.transform.position - Camera.main.ScreenToWorldPoint (new Vector3 (Input.mousePosition.x, Input.mousePosition.y, ObjectInitialPosition.z));
 
-			NavigationScript.supressNavigation = true;
+            FieldInfo supress = NavigationScript.GetType().GetField("supressNavigation");
+            supress.SetValue(NavigationScript, true);
 			LastMousePosition = Input.mousePosition;
 		}
 
 		void OnMouseUp()
 		{
+            FieldInfo supress = NavigationScript.GetType().GetField("supressNavigation");
+            supress.SetValue(NavigationScript, false);
+        }
 
-			NavigationScript.supressNavigation = false;
-		}
-
-		void OnMouseDrag()
+        void OnMouseDrag()
 		{
 			if (LastMousePosition != Input.mousePosition)
 			{
