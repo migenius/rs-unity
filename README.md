@@ -54,9 +54,9 @@ The use of the id ensures unique names, since Unity does not enforce this in its
 
 ## Notes
 
-- Requires RealityServer 5.1 build 2017.251 or later to provide the server side scene.
+- Requires RealityServer 5.3 build 2593.402 or later to provide the server side scene.
 
-- Requires Unity 2018.1.9f1 or later. This was recently updated. If you require support for Unity 5.x please clone the appropriate branch of the repository. Support for older versions will not be maintained.
+- Requires Unity 2019.4.5f1 or later. This was recently updated. If you require support for Unity 5.x please clone the appropriate branch of the repository. Support for older versions will not be maintained.
 
 - If there is no scene open when you open the project, go to _File → Open_ Scene and select _tableScene.unity_ to get the default scene with RealityServer setup.
 
